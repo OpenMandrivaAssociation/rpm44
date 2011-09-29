@@ -445,6 +445,9 @@ for i in `find . -type f -name "*"`; do
     perl -pi -e "s|/lib/rpm\b|/lib/%{name}|g" $i
 done
 
+# more crap...
+perl -pi -e "s|bin2c|/bin/true|g" lua/*
+
 for i in `find . -type f -name "Makefile*"`; do
     # rename the libs
     for lib in librpm librpmbuild librpmdb librpmio; do
