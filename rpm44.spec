@@ -262,6 +262,7 @@ BuildRequires:  readline-devel
 BuildRequires:	ncurses-devel
 BuildRequires:  openssl-devel >= 0.9.8
 BuildRequires:  lua-devel
+BuildRequires:  bison
 # Need for doc
 BuildRequires:	graphviz
 BuildRequires:	tetex
