@@ -435,22 +435,14 @@ rm -rf db db3 rpmdb/db.h
 for i in `find . -type f -name "*"`; do
     perl -pi -e "s|/etc/rpm/|/etc/%{name}/|g" $i
     perl -pi -e "s|/etc/rpm\b|/etc/%{name}|g" $i
-    perl -pi -e "s|\\\$\\{prefix\\}/lib/rpm/|\\\$\\{prefix\\}/lib/%{name}/|g" $i
-    perl -pi -e "s|\\$\\{prefix\\}/lib/rpm\b|\\$\\{prefix\\}/lib/%{name}|g" $i
     perl -pi -e "s|\\$\\(prefix\\)/src/rpm|\\$\\(prefix\\)/src/%{name}|g" $i
-    perl -pi -e "s|\\$\\(varprefix\\)/lib/rpm/|\\$\\(varprefix\\)/lib/%{name}/|g" $i
-    perl -pi -e "s|\\$\\(varprefix\\)/lib/rpm\b|\\$\\(varprefix\\)/lib/%{name}|g" $i
     perl -pi -e "s|\\$\\(libdir\\)/rpm/|\\$\\(libdir\\)/%{name}/|g" $i
     perl -pi -e "s|\\$\\(libdir\\)/rpm\b|\\$\\(libdir\\)/%{name}|g" $i
     perl -pi -e "s|\\$\\(includedir\\)/rpm\b|\\$\\(includedir\\)/%{name}|g" $i
-    perl -pi -e "s|/lib/rpm/|/lib/%{name}/|g" $i
-    perl -pi -e "s|\@prefix@\/lib/rpm|\@prefix@\/lib/%{name}/|g" $i
-    perl -pi -e "s|\\\$\\{usrprefix\\}/lib/rpm\b|\\\$\\{usrprefix\\}/lib/%{name}|g" $i
-    perl -pi -e "s|\%\{_var\}/lib/rpm\"|\%\{_var\}/lib/%{name}\"|g" $i
-    perl -pi -e "s|/var/lib/rpm\b|/var/lib/%{name}|g" $i
-    perl -pi -e "s|/usr/lib/rpm/|/usr/lib/%{name}/|g" $i
     perl -pi -e "s|/etc/rpm/|/etc/%{name}/|g" $i
     perl -pi -e "s|/var/lock/rpm/|/var/lock/%{name}/|g" $i
+    perl -pi -e "s|/lib/rpm/|/lib/%{name}/|g" $i
+    perl -pi -e "s|/lib/rpm\b|/lib/%{name}|g" $i
 done
 
 for i in `find . -type f -name "Makefile*"`; do
@@ -803,4 +795,3 @@ rm -rf /usr/lib/%{name}/*-mandrake-*
 %{_libdir}/librpmio44.so
 %{_libdir}/librpmbuild44.la
 %{_libdir}/librpmbuild44.so
-
