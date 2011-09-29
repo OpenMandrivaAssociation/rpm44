@@ -54,7 +54,7 @@
 Summary:	The RPM package management system
 Name:		rpm44
 Version:	%{rpmversion}
-%define subrel 1
+%define subrel 2
 Release:	%mkrel 0
 Group:		System/Configuration/Packaging
 URL:            http://rpm.org/
