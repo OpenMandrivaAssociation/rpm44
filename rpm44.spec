@@ -54,7 +54,7 @@
 Summary:	The RPM package management system
 Name:		rpm44
 Version:	%{rpmversion}
-%define subrel 2
+%define subrel 3
 Release:	%mkrel 0
 Group:		System/Configuration/Packaging
 URL:            http://rpm.org/
@@ -244,6 +244,7 @@ Patch2006: rpm-4.4.2.3-CVE-2010-2059.diff
 Patch2007: rpm-4.4.2.3-debian.diff
 Patch2008: rpm-4.4.2.3-no_docs.diff
 Patch2009: rpm-4.4.2.3-fmtstr.diff
+Patch2010: rpm-4.4.2.3-CVE-2011-3378.diff
 
 License:	GPL
 BuildRequires:	autoconf >= 2.57
@@ -431,6 +432,7 @@ rm -rf db db3 rpmdb/db.h
 %patch2007 -p1 -b .lzma-5
 %patch2008 -p0 -b .no_docs
 %patch2009 -p0 -b .fmtstr
+%patch2010 -p1 -b .CVE-2011-3378
 
 # hardcoded crap!
 for i in `find . -type f -name "*"`; do
