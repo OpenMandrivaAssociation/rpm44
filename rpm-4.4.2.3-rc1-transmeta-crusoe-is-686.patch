@@ -1,0 +1,15 @@
+diff -p -up rpm-4.4.2.3-rc1/lib/rpmrc.c.pix rpm-4.4.2.3-rc1/lib/rpmrc.c
+--- rpm-4.4.2.3-rc1/lib/rpmrc.c.pix	2008-02-08 11:10:20.000000000 +0100
++++ rpm-4.4.2.3-rc1/lib/rpmrc.c	2008-02-08 11:12:30.000000000 +0100
+@@ -977,6 +977,11 @@ static inline int RPMClass(void)
+ 	
+ 	sigaction(SIGILL, &oldsa, NULL);
+ 
++#define USER686 ((1<<4) | (1<<8) | (1<<15))
++	/* Transmeta Crusoe CPUs say that their CPU family is "5" but they have enough features for i686. */
++	if(cpu == 5 && (cap & USER686) == USER686)
++		return 6;
++
+ 	if (cpu < 6)
+ 		return cpu;
+ 		

@@ -1,0 +1,12 @@
+diff -p -up rpm-4.4.2.3-rc1/po/ru.po.pix rpm-4.4.2.3-rc1/po/ru.po
+--- rpm-4.4.2.3-rc1/po/ru.po.pix	2008-03-10 16:31:11.000000000 +0100
++++ rpm-4.4.2.3-rc1/po/ru.po	2008-03-10 16:31:19.000000000 +0100
+@@ -1455,7 +1455,7 @@ msgstr "Файл архива не найден в заголовк
+ 
+ #: lib/cpio.c:251
+ msgid " failed - "
+-msgstr "не удалось - "
++msgstr " не удалось - "
+ 
+ #: lib/depends.c:214
+ #, fuzzy, c-format

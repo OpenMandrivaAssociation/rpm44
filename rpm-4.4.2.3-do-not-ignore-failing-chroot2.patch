@@ -1,0 +1,23 @@
+diff -p -up rpm-4.4.2.3/lib/psm.c.pix rpm-4.4.2.3/lib/psm.c
+--- rpm-4.4.2.3/lib/psm.c.pix	2008-06-23 15:25:33.000000000 +0200
++++ rpm-4.4.2.3/lib/psm.c	2008-08-26 15:32:09.000000000 +0200
+@@ -1509,6 +1509,7 @@ psm->te->h = headerLink(fi->h);
+ 
+ 	/* Change root directory if requested and not already done. */
+ 	rc = rpmpsmNext(psm, PSM_CHROOT_IN);
++	if (rc) break;
+ 
+ 	if (psm->goal == PSM_PKGINSTALL) {
+ 	    psm->scriptTag = RPMTAG_PREIN;
+@@ -2005,7 +2006,10 @@ psm->te->h = headerFree(psm->te->h);
+ 	    xx = chdir("/");
+ 	    /*@-superuser@*/
+ 	    if (rootDir != NULL && strcmp(rootDir, "/") && *rootDir == '/')
+-		rc = chroot(rootDir);
++	        if (chroot(rootDir) == -1) {
++		    rpmlog(RPMLOG_ERR, _("Unable to change root directory: %m\n"));
++		    return -1;
++		}
+ 	    /*@=superuser@*/
+ 	    psm->chrootDone = 1;
+ 	    (void) rpmtsSetChrootDone(ts, 1);

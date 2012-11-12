@@ -1,0 +1,92 @@
+Two new fatal errors (during package build, but only for mdv packages and when
+%_missing_subpackage_terminate_build is set):
+
+- "%files foo" for subpackages is now mandatory
+  (otherwise what's the use creating the subpackage in the first place)
+
+- disallow scriptlets for non packaged binary packages
+  (eg: detect mistakes like "%post -p /sbin/ldconfig" instead of "%post -n libfoo -p /sbin/ldconfig")
+
+diff -p -up rpm-4.4.2.3/build/parseSpec.c.pix rpm-4.4.2.3/build/parseSpec.c
+--- rpm-4.4.2.3/build/parseSpec.c.pix	2008-06-17 10:49:02.000000000 +0200
++++ rpm-4.4.2.3/build/parseSpec.c	2008-06-17 10:56:44.000000000 +0200
+@@ -480,6 +480,68 @@ void closeSpec(Spec spec)
+     }
+ }
+ 
++static const char *_headerName(Header h)
++{
++  const char *s;
++  (void) headerNVR(h, &s, NULL, NULL);
++  return s;
++}
++
++static const char *_headerRelease(Header h)
++{
++  const char *s;
++  (void) headerNVR(h, NULL, NULL, &s);
++  return s;
++}
++
++static int checkNonPackagedRPM(Header h, int is_main_subpackage)
++{
++    int res = 0;
++    int tag;
++
++    /* those checks are Mandriva only (May 2008),
++       and must not break non Mandriva packages */    
++    if (strstr(_headerRelease(h), "mdv") == 0) return 0;
++
++    /* Check that no %pre, %post ... do not exist in this header, since they will be dropped */
++    HeaderIterator hi = headerInitIterator(h);
++    while (headerNextIterator(hi, &tag, NULL, NULL, NULL)) {
++      switch (tag) {
++      case RPMTAG_PREIN:
++      case RPMTAG_POSTIN:
++      case RPMTAG_PREUN:
++      case RPMTAG_POSTUN:
++      case RPMTAG_PREINPROG:
++      case RPMTAG_POSTINPROG:
++      case RPMTAG_PREUNPROG:
++      case RPMTAG_POSTUNPROG:
++      case RPMTAG_TRIGGERIN:
++      case RPMTAG_TRIGGERUN:
++      case RPMTAG_TRIGGERPOSTUN:
++
++	rpmError(RPMERR_BADSPEC, _("Useless %%%s on non existant binary package \"%s\"\n"),
++		 tagName(tag), _headerName(h));
++	res = 1;
++      }
++    }
++    hi = headerFreeIterator(hi);
++
++    if (!is_main_subpackage) {
++	 /* "%files foo" for subpackages is now mandatory */
++	 /* (otherwise what's the use creating the subpackage in the first place) */
++
++	 /* we must skip the *-__restore__ fake subpackage used after *-debug subpackage */
++	 if (strstr(_headerName(h), "__restore__") == NULL) {
++	      rpmError(RPMERR_BADSPEC, _("Missing %%files for subpackage %s\n"),
++		       _headerName(h));
++	      res = 1;
++	 }
++    }
++
++
++    return res && rpmExpandNumeric("%{?_missing_subpackage_terminate_build}");
++}
++
+ /*@-redecl@*/
+ /*@unchecked@*/
+ extern int noLang;		/* XXX FIXME: pass as arg */
+@@ -708,6 +770,10 @@ int parseSpec(rpmts ts, const char *spec
+ 	    spec = freeSpec(spec);
+ 	    return RPMERR_BADSPEC;
+ 	}
++	if (!pkg->fileList && checkNonPackagedRPM(pkg->header, pkg == spec->packages)) {
++	    spec = freeSpec(spec);
++	    return RPMERR_BADSPEC;
++	}
+ 
+ 	(void) headerAddEntry(pkg->header, RPMTAG_OS, RPM_STRING_TYPE, os, 1);
+ 	(void) headerAddEntry(pkg->header, RPMTAG_ARCH,

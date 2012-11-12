@@ -1,0 +1,127 @@
+--- rpm-4.4.2.2/lib/rpmlib.h.pix	2007-09-11 08:28:15.000000000 +0200
++++ rpm-4.4.2.2/lib/rpmlib.h	2007-10-16 15:22:19.000000000 +0200
+@@ -547,6 +547,7 @@ typedef	enum rpmsenseFlags_e {
+     RPMSENSE_SCRIPT_POSTUN | \
+     RPMSENSE_SCRIPT_VERIFY | \
+     RPMSENSE_FIND_REQUIRES | \
++    RPMSENSE_MISSINGOK | \
+     RPMSENSE_SCRIPT_PREP | \
+     RPMSENSE_SCRIPT_BUILD | \
+     RPMSENSE_SCRIPT_INSTALL | \
+--- rpm-4.4.2.2/lib/depends.c.pix	2007-09-11 08:51:28.000000000 +0200
++++ rpm-4.4.2.2/lib/depends.c	2007-10-19 12:53:53.000000000 +0200
+@@ -395,6 +395,16 @@ int rpmtsAddEraseElement(rpmts ts, Heade
+     return removePackage(ts, h, dboffset, RPMAL_NOMATCH);
+ }
+ 
++static int _rpmdsNotify_if(rpmds ds, const char * where, int rc, int_32 Flags)
++{
++    if (rc && Flags & RPMSENSE_MISSINGOK) {
++	rc = 0;
++	where = _("(hint skipped)");
++    }
++    rpmdsNotify(ds, where, rc);
++    return rc;
++}
++
+ /**
+  * Check dep for an unsatisfied dependency.
+  * @param ts		transaction set
+@@ -412,6 +422,7 @@ static int unsatisfiedDepend(rpmts ts, r
+     DBT * data = alloca(sizeof(*data));
+     rpmdbMatchIterator mi;
+     const char * Name;
++    int_32 Flags;
+     Header h;
+     int _cacheThisRC = 1;
+     int rc;
+@@ -420,6 +431,7 @@ static int unsatisfiedDepend(rpmts ts, r
+ 
+     if ((Name = rpmdsN(dep)) == NULL)
+ 	return 0;	/* XXX can't happen */
++    Flags = rpmdsFlags(dep);
+ 
+     /*
+      * Check if dbiOpen/dbiPut failed (e.g. permissions), we can't cache.
+@@ -465,7 +477,7 @@ static int unsatisfiedDepend(rpmts ts, r
+ /*@=branchstate@*/
+ 
+ 	    if (rc >= 0) {
+-		rpmdsNotify(dep, _("(cached)"), rc);
++		rc = _rpmdsNotify_if(dep, _("(cached)"), rc, Flags);
+ 		return rc;
+ 	    }
+ 	}
+@@ -492,7 +504,7 @@ retry:
+ 	/*@=observertrans =mayaliasunique@*/
+ /*@-boundsread@*/
+ 	    if (xisspace(start[i]) || start[i] == '\0' || start[i] == ',') {
+-		rpmdsNotify(dep, _("(rpmrc provides)"), rc);
++		rc = _rpmdsNotify_if(dep, _("(rpmrc provides)"), rc, Flags);
+ 		goto exit;
+ 	    }
+ /*@=boundsread@*/
+@@ -509,7 +521,7 @@ retry:
+      */
+     if (!strncmp(Name, "rpmlib(", sizeof("rpmlib(")-1)) {
+ 	if (rpmCheckRpmlibProvides(dep)) {
+-	    rpmdsNotify(dep, _("(rpmlib provides)"), rc);
++	    rc = _rpmdsNotify_if(dep, _("(rpmlib provides)"), rc, Flags);
+ 	    goto exit;
+ 	}
+ 	goto unsatisfied;
+@@ -538,7 +550,7 @@ retry:
+ 			ts->removedPackages, ts->numRemovedPackages, 1);
+ 
+ 	    while ((h = rpmdbNextIterator(mi)) != NULL) {
+-		rpmdsNotify(dep, _("(db files)"), rc);
++		rc = _rpmdsNotify_if(dep, _("(db files)"), rc, Flags);
+ 		mi = rpmdbFreeIterator(mi);
+ 		goto exit;
+ 	    }
+@@ -551,7 +563,7 @@ retry:
+ 			ts->removedPackages, ts->numRemovedPackages, 1);
+ 	while ((h = rpmdbNextIterator(mi)) != NULL) {
+ 	    if (rpmdsAnyMatchesDep(h, dep, _rpmds_nopromote)) {
+-		rpmdsNotify(dep, _("(db provides)"), rc);
++		rc = _rpmdsNotify_if(dep, _("(db provides)"), rc, Flags);
+ 		mi = rpmdbFreeIterator(mi);
+ 		goto exit;
+ 	    }
+@@ -564,7 +576,7 @@ retry:
+ 			ts->removedPackages, ts->numRemovedPackages, 1);
+ 	while ((h = rpmdbNextIterator(mi)) != NULL) {
+ 	    if (rpmdsAnyMatchesDep(h, dep, _rpmds_nopromote)) {
+-		rpmdsNotify(dep, _("(db package)"), rc);
++		rc = _rpmdsNotify_if(dep, _("(db package)"), rc, Flags);
+ 		mi = rpmdbFreeIterator(mi);
+ 		goto exit;
+ 	    }
+@@ -593,10 +605,16 @@ retry:
+ /*@=boundsread@*/
+ 
+ unsatisfied:
+-    rc = 1;	/* dependency is unsatisfied */
+-    rpmdsNotify(dep, NULL, rc);
++    /* dependency is unsatisfied */
++    rc = _rpmdsNotify_if(dep, NULL, 1, Flags);
+ 
+ exit:
++    /* if "a" suggests "b", rpm rightfully allows to remove "b" */
++    /* but rpm must not put in cache that "b" can be removed, */
++    /* because if "c" requires "b", rpm must not allow to remove "b" */
++    if (Flags & RPMSENSE_MISSINGOK)
++	_cacheThisRC = 0;
++
+     /*
+      * If dbiOpen/dbiPut fails (e.g. permissions), we can't cache.
+      */
+@@ -965,6 +983,8 @@ static inline /*@observer@*/ const char 
+ 	return "Requires(postun):";
+     if (f & RPMSENSE_SCRIPT_VERIFY)
+ 	return "Requires(verify):";
++    if (f & RPMSENSE_MISSINGOK)
++	return "Requires(hint):";
+     if (f & RPMSENSE_FIND_REQUIRES)
+ 	return "Requires(auto):";
+     return "Requires:";

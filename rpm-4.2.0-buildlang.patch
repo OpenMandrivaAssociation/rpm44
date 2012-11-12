@@ -1,0 +1,13 @@
+--- rpm-4.2/build/build.c.orig	2002-12-24 06:00:41.000000000 +0000
++++ rpm-4.2/build/build.c	2003-01-15 15:03:56.000000000 +0000
+@@ -220,6 +220,10 @@
+ 
+ 	/*@-mods@*/
+ 	errno = 0;
++	setenv ("LANG", "C", 1);
++	unsetenv ("LC_ALL");
++	unsetenv ("LANGUAGE");
++	unsetenv ("LINGUAS");
+ 	/*@=mods@*/
+ /*@-boundsread@*/
+ 	(void) execvp(argv[0], (char *const *)argv);

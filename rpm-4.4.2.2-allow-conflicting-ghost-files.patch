@@ -1,0 +1,13 @@
+diff -Nurp rpm-4.4.2.2/lib/rpmfi.c rpm-4.4.2.2-j/lib/rpmfi.c
+--- rpm-4.4.2.2/lib/rpmfi.c	2007-09-11 09:28:15.000000000 +0300
++++ rpm-4.4.2.2-j/lib/rpmfi.c	2008-01-12 08:06:39.000000000 +0200
+@@ -521,6 +521,9 @@ int rpmfiCompare(const rpmfi afi, const 
+     fileTypes awhat = whatis(rpmfiFMode(afi));
+     fileTypes bwhat = whatis(rpmfiFMode(bfi));
+ 
++    if ((rpmfiFFlags(afi) & RPMFILE_GHOST) ||
++	(rpmfiFFlags(bfi) & RPMFILE_GHOST)) return 0;
++
+     if (awhat != bwhat) return 1;
+ 
+     if (awhat == LINK) {

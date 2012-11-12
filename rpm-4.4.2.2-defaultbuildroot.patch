@@ -1,0 +1,25 @@
+diff -p -up rpm-4.4.2.2/build/parsePreamble.c.defaultbuildroot rpm-4.4.2.2/build/parsePreamble.c
+--- rpm-4.4.2.2/build/parsePreamble.c.defaultbuildroot	2007-12-18 17:59:38.000000000 +0100
++++ rpm-4.4.2.2/build/parsePreamble.c	2007-12-18 17:59:43.000000000 +0100
+@@ -955,6 +955,21 @@ int parsePreamble(Spec spec, int initial
+ 	}
+     }
+ 
++    if (!spec->gotBuildRootURL && !spec->buildRootURL) {
++        char *buildRootURL = rpmGenPath(NULL, "%{?buildroot:%{buildroot}}", NULL);
++	if (!buildRootURL || strcmp(buildRootURL, "/") == 0) {
++	    _free(buildRootURL);
++	    buildRootURL = rpmGenPath(NULL, "%{?defaultbuildroot:%{defaultbuildroot}}", NULL);
++	    addMacro(spec->macros, "buildroot", NULL, buildRootURL, RMIL_SPEC);
++	}
++	if (!buildRootURL || strcmp(buildRootURL, "/") == 0) {
++	    _free(buildRootURL);
++	} else {
++	    spec->buildRootURL = buildRootURL;
++	    spec->gotBuildRootURL = 1;
++	}
++    }
++
+     /* Do some final processing on the header */
+     
+     if (!spec->gotBuildRootURL && spec->buildRootURL) {

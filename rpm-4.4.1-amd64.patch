@@ -1,0 +1,37 @@
+--- rpm-4.2.3/build/parseSpec.c.amd64	2005-01-13 05:55:04.000000000 -0500
++++ rpm-4.2.3/build/parseSpec.c	2005-01-14 08:25:05.963038183 -0500
+@@ -187,6 +187,16 @@ static int copyNextLine(Spec spec, OFI_t
+ }
+ /*@=boundswrite@*/
+ 
++static const char *getAlternateArch(const char *arch)
++{
++    const char *alternate_arch = NULL;
++    if (! strncmp("x86_64", arch, sizeof("x86_64")-1))
++      alternate_arch = "amd64";
++    else if (! strncmp("amd64", arch, sizeof("amd64")-1))
++      alternate_arch = "x86_64";
++    return alternate_arch;
++}
++
+ /*@-boundswrite@*/
+ int readLine(Spec spec, int strip)
+ {
+@@ -274,13 +284,15 @@ retry:
+ 	match = 0;
+     } else if (! strncmp("%ifarch", s, sizeof("%ifarch")-1)) {
+ 	const char *arch = rpmExpand("%{_target_cpu}", NULL);
++	const char *alternate_arch = getAlternateArch(arch);
+ 	s += 7;
+-	match = matchTok(arch, s);
++	match = matchTok(arch, s) || (alternate_arch && matchTok(alternate_arch, s));
+ 	arch = _free(arch);
+     } else if (! strncmp("%ifnarch", s, sizeof("%ifnarch")-1)) {
+ 	const char *arch = rpmExpand("%{_target_cpu}", NULL);
++	const char *alternate_arch = getAlternateArch(arch);
+ 	s += 8;
+-	match = !matchTok(arch, s);
++	match = !matchTok(arch, s) && (!alternate_arch || !matchTok(alternate_arch, s));
+ 	arch = _free(arch);
+     } else if (! strncmp("%ifos", s, sizeof("%ifos")-1)) {
+ 	const char *os = rpmExpand("%{_target_os}", NULL);

@@ -1,0 +1,120 @@
+You must also do: rm -rf db db3 rpmdb/db.h
+
+diff -p -up rpm-4.4.2.3/Makefile.am.pix rpm-4.4.2.3/Makefile.am
+--- rpm-4.4.2.3/Makefile.am.pix	2008-09-05 16:15:26.000000000 +0200
++++ rpm-4.4.2.3/Makefile.am	2008-09-05 16:22:16.000000000 +0200
+@@ -6,7 +6,7 @@ LINT = splint
+ 
+ EXTRA_DIST = CHANGES ChangeLog CREDITS Doxyheader GROUPS README.amiga INSTALL \
+ 	autodeps/none autodeps/*.prov autodeps/*.req autogen.sh \
+-	config.site db db3/configure installplatform platform* \
++	config.site installplatform platform* \
+ 	po/*.in po/*.po po/rpm.pot \
+ 	rpm.magic rpmpopt-$(VERSION) rpmqv.c 
+ 
+diff -p -up rpm-4.4.2.3/configure.ac.pix rpm-4.4.2.3/configure.ac
+--- rpm-4.4.2.3/configure.ac.pix	2008-09-05 15:59:58.000000000 +0200
++++ rpm-4.4.2.3/configure.ac	2008-09-05 16:21:05.000000000 +0200
+@@ -588,14 +588,33 @@ AC_SUBST(WITH_POPT_LIB)
+ 
+ #=================
+ 
+-dnl ------------------ with    internal db
+ AC_DEFINE(HAVE_DB3_DB_H, 1, [Define if you have the <db3/db.h> header file])
+-WITH_DB_SUBDIR=db3
+-WITH_INTERNAL_DB=1
+ DBLIBSRCS="db3.c"
+ 
++  AC_CHECK_HEADER([db.h],[
++    save_LIBS="$LIBS"
++    AC_CHECK_LIB([db],[db_create],[],[
++      AC_MSG_ERROR([missing db_create in libdb])
++      ])
++    AC_CHECK_LIB([db],[db_env_create],[],[
++      AC_MSG_ERROR([missing db_env_create in libdb])
++      ])
++    AC_CHECK_LIB([db],[db_env_set_func_fsync],[],[
++      AC_MSG_ERROR([missing db_env_set_func_fsync in libdb])
++      ])
++    AC_CHECK_LIB([db],[db_strerror],[],[
++      AC_MSG_ERROR([missing db_strerror in libdb])
++      ])
++    WITH_DB_LIB=-ldb
++    LIBS="$save_LIBS"
++  ],[
++    AC_MSG_ERROR([missing required header db.h])
++  ])
++
++AC_SUBST([WITH_DB_LIB])
+ AC_SUBST(WITH_DB_SUBDIR)
+-AC_SUBST(WITH_INTERNAL_DB)
++AM_CONDITIONAL([WITH_INTERNAL_DB],[test "$with_internal_db" = yes])
++
+ 
+ #=================
+ # Check for sqlite3 library. Prefer external, then internal, otherwise none.
+diff -p -up rpm-4.4.2.3/rpmdb/Makefile.am.pix rpm-4.4.2.3/rpmdb/Makefile.am
+--- rpm-4.4.2.3/rpmdb/Makefile.am.pix	2008-04-01 09:28:22.000000000 +0200
++++ rpm-4.4.2.3/rpmdb/Makefile.am	2008-09-05 16:09:13.000000000 +0200
+@@ -25,21 +25,27 @@ tjfn_LDFLAGS = @LDFLAGS_STATIC@
+ tjfn_LDADD = librpmdb.la
+ 
+ pkgincdir = $(pkgincludedir)
+-pkginc_HEADERS = db.h header.h hdrinline.h rpmdb.h rpmhash.h
++pkginc_HEADERS = header.h hdrinline.h rpmdb.h rpmhash.h
+ noinst_HEADERS = fprint.h header_internal.h legacy.h
+ 
+ pkgbindir = @RPMCONFIGDIR@
++if WITH_INTERNAL_DB
+ pkgbin_PROGRAMS = \
+ 	rpmdb_archive rpmdb_checkpoint rpmdb_deadlock rpmdb_dump rpmdb_load \
+ 	rpmdb_printlog rpmdb_recover rpmdb_svc rpmdb_stat rpmdb_upgrade \
+ 	rpmdb_verify 
++endif
+ 
+ mylibs = librpmdb.la
+ 
+ LIBS =
+ 
++if WITH_INTERNAL_DB
+ # XXX watchout, ../db3/libdb.la created by this Makefile may surprise
+ libdb_la = $(top_builddir)/$(WITH_DB_SUBDIR)/libdb.la
++else
++libdb_la = @WITH_DB_LIB@
++endif
+ 
+ # XXX grrr, RPM_BUILD_ROOT prevents build pollution if/when -lrpm different
+ LDFLAGS = -L$(RPM_BUILD_ROOT)$(usrlibdir) -L$(DESTDIR)$(usrlibdir)
+@@ -59,9 +65,6 @@ librpmdb_la_LDFLAGS = -release 4.4 \
+ librpmdb_la_LIBADD = $(DBLIBOBJS) $(libdb_la)
+ librpmdb_la_DEPENDENCIES = $(DBLIBOBJS) $(libdb_la)
+ 
+-# XXX make sure that db.h symlink is generated
+-dbconfig.c $(DBLIBSRCS): db.h
+-
+ tagtbl.c: Makefile.am $(top_srcdir)/lib/rpmlib.h 
+ 	@echo '/*@-bounds@*/' > $@
+ 	@echo '#include "system.h"' >> $@
+@@ -80,9 +83,7 @@ tagtbl.c: Makefile.am $(top_srcdir)/lib/
+ 	@echo 'const int rpmTagTableSize = sizeof(rpmTagTbl) / sizeof(rpmTagTbl[0]) - 1;' >> $@
+ 	@echo '/*@=bounds@*/' >> $@
+ 
+-db.h:
+-	@ln -sf ../$(WITH_DB_SUBDIR)/db.h $@
+-
++if WITH_INTERNAL_DB
+ # XXX grrr, force noinst libdb.la for db3.
+ $(libdb_la):
+ 	sed -e"/^libdir=/s/^.*$$/libdir=''/" < $(top_builddir)/$(WITH_DB_SUBDIR)/libdb-4.3.la > $(libdb_la)
+@@ -172,9 +173,10 @@ rpmdb_verify_LDADD = \
+ 	$(top_builddir)/$(WITH_DB_SUBDIR)/util_cache.o \
+ 	$(top_builddir)/$(WITH_DB_SUBDIR)/util_sig.o \
+ 	librpmdb.la
++endif
+ 
+ clean-local:
+-	rm -f *.o db.h $(libdb_la)
++	rm -f *.o $(libdb_la)
+ 
+ BUILT_SOURCES = tagtbl.c
+ 

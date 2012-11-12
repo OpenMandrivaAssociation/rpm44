@@ -1,0 +1,157 @@
+diff -p -up rpm-4.4.2.3/build/parseBuildInstallClean.c.pix rpm-4.4.2.3/build/parseBuildInstallClean.c
+--- rpm-4.4.2.3/build/parseBuildInstallClean.c.pix	2008-04-01 09:28:21.000000000 +0200
++++ rpm-4.4.2.3/build/parseBuildInstallClean.c	2008-06-11 17:52:45.000000000 +0200
+@@ -41,14 +41,14 @@ int parseBuildInstallClean(Spec spec, rp
+     *sbp = newStringBuf();
+ 
+     /* There are no options to %build, %install, %check, or %clean */
+-    if ((rc = readLine(spec, STRIP_NOTHING)) > 0)
++    if ((rc = readLine(spec, STRIP_NOTHING)) == 1)
+ 	return PART_NONE;
+     if (rc)
+ 	return rc;
+     
+     while (! (nextPart = isPart(spec->line))) {
+ 	appendStringBuf(*sbp, spec->line);
+-	if ((rc = readLine(spec, STRIP_NOTHING)) > 0)
++	if ((rc = readLine(spec, STRIP_NOTHING)) == 1)
+ 	    return PART_NONE;
+ 	if (rc)
+ 	    return rc;
+diff -p -up rpm-4.4.2.3/build/parseChangelog.c.pix rpm-4.4.2.3/build/parseChangelog.c
+--- rpm-4.4.2.3/build/parseChangelog.c.pix	2008-04-01 09:28:21.000000000 +0200
++++ rpm-4.4.2.3/build/parseChangelog.c	2008-06-11 17:52:46.000000000 +0200
+@@ -212,7 +212,7 @@ int parseChangelog(Spec spec)
+     StringBuf sb = newStringBuf();
+     
+     /* There are no options to %changelog */
+-    if ((rc = readLine(spec, STRIP_COMMENTS)) > 0) {
++    if ((rc = readLine(spec, STRIP_COMMENTS)) == 1) {
+ 	sb = freeStringBuf(sb);
+ 	return PART_NONE;
+     }
+@@ -221,7 +221,7 @@ int parseChangelog(Spec spec)
+     
+     while (! (nextPart = isPart(spec->line))) {
+ 	appendStringBuf(sb, spec->line);
+-	if ((rc = readLine(spec, STRIP_COMMENTS)) > 0) {
++	if ((rc = readLine(spec, STRIP_COMMENTS)) == 1) {
+ 	    nextPart = PART_NONE;
+ 	    break;
+ 	}
+diff -p -up rpm-4.4.2.3/build/parseDescription.c.pix rpm-4.4.2.3/build/parseDescription.c
+--- rpm-4.4.2.3/build/parseDescription.c.pix	2008-04-01 09:28:21.000000000 +0200
++++ rpm-4.4.2.3/build/parseDescription.c	2008-06-11 17:52:45.000000000 +0200
+@@ -96,7 +96,7 @@ int parseDescription(Spec spec)
+     
+     sb = newStringBuf();
+ 
+-    if ((rc = readLine(spec, STRIP_TRAILINGSPACE | STRIP_COMMENTS)) > 0) {
++    if ((rc = readLine(spec, STRIP_TRAILINGSPACE | STRIP_COMMENTS)) == 1) {
+ 	nextPart = PART_NONE;
+     } else {
+ 	if (rc) {
+@@ -107,7 +107,7 @@ int parseDescription(Spec spec)
+ 	    appendLineStringBuf(sb, spec->line);
+ 	    if (t) t->t_nlines++;
+ 	    if ((rc =
+-		readLine(spec, STRIP_TRAILINGSPACE | STRIP_COMMENTS)) > 0) {
++		readLine(spec, STRIP_TRAILINGSPACE | STRIP_COMMENTS)) == 1) {
+ 		nextPart = PART_NONE;
+ 		break;
+ 	    }
+diff -p -up rpm-4.4.2.3/build/parseFiles.c.pix rpm-4.4.2.3/build/parseFiles.c
+--- rpm-4.4.2.3/build/parseFiles.c.pix	2008-04-01 09:28:21.000000000 +0200
++++ rpm-4.4.2.3/build/parseFiles.c	2008-06-11 17:52:44.000000000 +0200
+@@ -96,14 +96,14 @@ int parseFiles(Spec spec)
+ 
+     pkg->fileList = newStringBuf();
+     
+-    if ((rc = readLine(spec, STRIP_COMMENTS)) > 0) {
++    if ((rc = readLine(spec, STRIP_COMMENTS)) == 1) {
+ 	nextPart = PART_NONE;
+     } else {
+ 	if (rc)
+ 	    goto exit;
+ 	while (! (nextPart = isPart(spec->line))) {
+ 	    appendStringBuf(pkg->fileList, spec->line);
+-	    if ((rc = readLine(spec, STRIP_COMMENTS)) > 0) {
++	    if ((rc = readLine(spec, STRIP_COMMENTS)) == 1) {
+ 		nextPart = PART_NONE;
+ 		break;
+ 	    }
+diff -p -up rpm-4.4.2.3/build/parsePreamble.c.pix rpm-4.4.2.3/build/parsePreamble.c
+--- rpm-4.4.2.3/build/parsePreamble.c.pix	2008-06-10 12:14:24.000000000 +0200
++++ rpm-4.4.2.3/build/parsePreamble.c	2008-06-11 17:52:46.000000000 +0200
+@@ -922,7 +922,8 @@ int parsePreamble(Spec spec, int initial
+ 	xx = headerAddEntry(pkg->header, RPMTAG_NAME, RPM_STRING_TYPE, NVR, 1);
+     }
+ 
+-    if ((rc = readLine(spec, STRIP_TRAILINGSPACE | STRIP_COMMENTS)) > 0) {
++    if ((rc = readLine(spec, STRIP_TRAILINGSPACE | STRIP_COMMENTS)) == 1) {
++        if (rc == RPMERR_BADSPEC) return rc;
+ 	nextPart = PART_NONE;
+     } else {
+ 	if (rc)
+@@ -946,7 +947,7 @@ int parsePreamble(Spec spec, int initial
+ 		    return PART_BUILDARCHITECTURES;
+ 	    }
+ 	    if ((rc =
+-		 readLine(spec, STRIP_TRAILINGSPACE | STRIP_COMMENTS)) > 0) {
++		 readLine(spec, STRIP_TRAILINGSPACE | STRIP_COMMENTS)) == 1) {
+ 		nextPart = PART_NONE;
+ 		break;
+ 	    }
+diff -p -up rpm-4.4.2.3/build/parsePrep.c.pix rpm-4.4.2.3/build/parsePrep.c
+--- rpm-4.4.2.3/build/parsePrep.c.pix	2008-04-01 09:28:21.000000000 +0200
++++ rpm-4.4.2.3/build/parsePrep.c	2008-06-11 17:52:46.000000000 +0200
+@@ -590,7 +590,7 @@ int parsePrep(Spec spec)
+     spec->prep = newStringBuf();
+ 
+     /* There are no options to %prep */
+-    if ((rc = readLine(spec, STRIP_NOTHING)) > 0) {
++    if ((rc = readLine(spec, STRIP_NOTHING)) == 1) {
+ 	return PART_NONE;
+     }
+     if (rc)
+@@ -602,7 +602,7 @@ int parsePrep(Spec spec)
+ 	/* Need to expand the macros inline.  That way we  */
+ 	/* can give good line number information on error. */
+ 	appendStringBuf(sb, spec->line);
+-	if ((rc = readLine(spec, STRIP_NOTHING)) > 0) {
++	if ((rc = readLine(spec, STRIP_NOTHING)) == 1) {
+ 	    nextPart = PART_NONE;
+ 	    break;
+ 	}
+diff -p -up rpm-4.4.2.3/build/parseScript.c.pix rpm-4.4.2.3/build/parseScript.c
+--- rpm-4.4.2.3/build/parseScript.c.pix	2008-04-01 09:28:21.000000000 +0200
++++ rpm-4.4.2.3/build/parseScript.c	2008-06-11 17:52:45.000000000 +0200
+@@ -272,14 +272,14 @@ int parseScript(Spec spec, int parsePart
+     }
+ 
+     sb = newStringBuf();
+-    if ((rc = readLine(spec, STRIP_NOTHING)) > 0) {
++    if ((rc = readLine(spec, STRIP_NOTHING)) == 1) {
+ 	nextPart = PART_NONE;
+     } else {
+ 	if (rc)
+ 	    goto exit;
+ 	while (! (nextPart = isPart(spec->line))) {
+ 	    appendStringBuf(sb, spec->line);
+-	    if ((rc = readLine(spec, STRIP_NOTHING)) > 0) {
++	    if ((rc = readLine(spec, STRIP_NOTHING)) == 1) {
+ 		nextPart = PART_NONE;
+ 		break;
+ 	    }
+diff -p -up rpm-4.4.2.3/build/rpmbuild.h.pix rpm-4.4.2.3/build/rpmbuild.h
+--- rpm-4.4.2.3/build/rpmbuild.h.pix	2008-04-01 09:28:21.000000000 +0200
++++ rpm-4.4.2.3/build/rpmbuild.h	2008-06-11 17:51:43.000000000 +0200
+@@ -167,7 +167,7 @@ extern /*@observer@*/ int_32 * const get
+  * Read next line from spec file.
+  * @param spec		spec file control structure
+  * @param strip		truncate comments?
+- * @return		0 on success, 1 on EOF, <0 on error
++ * @return		0 on success, 1 on EOF, otherwise error
+  */
+ int readLine(Spec spec, int strip)
+ 	/*@globals rpmGlobalMacroContext, h_errno, fileSystem, internalState @*/

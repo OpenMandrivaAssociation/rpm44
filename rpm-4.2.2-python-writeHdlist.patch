@@ -1,0 +1,59 @@
+--- python/header-py.h.python_writeHD	2003-07-13 03:04:52.000000000 +0900
++++ python/header-py.h	2004-07-28 21:27:02.938526576 +0900
+@@ -37,6 +37,8 @@
+ 	/*@*/;
+ PyObject * rpmHeaderFromFD(PyObject * self, PyObject * args)
+ 	/*@*/;
++PyObject * rpmHeaderToFile(PyObject * self, PyObject * args)
++        /*@*/;
+ PyObject * rpmReadHeaders (FD_t fd)
+ 	/*@*/;
+ PyObject * rhnLoad(PyObject * self, PyObject * args)
+--- python/header-py.c.python_writeHD	2003-12-23 11:33:00.000000000 +0900
++++ python/header-py.c	2004-07-28 21:27:02.938526576 +0900
+@@ -743,6 +743,34 @@
+     return (PyObject *) hdr;
+ }
+ 
++int WriteHeaders(PyObject *hdlist,char *filename)
++{
++  hdrObject *hdr;
++  FD_t  outfdt=0;
++  int   count;
++  
++  outfdt = Fopen(filename, "w.fdio");
++  if ((!outfdt)||(fdFileno(outfdt)<0)) return(-1);
++
++  for(count=0;count<PyList_Size(hdlist);count++){
++    hdr = (hdrObject *)PyList_GetItem(hdlist, count);
++    headerWrite(outfdt,hdr->h,HEADER_MAGIC_YES);
++  }
++  Fclose(outfdt);
++  return(0);
++}
++
++PyObject * rpmHeaderToFile(PyObject * self, PyObject * args)
++{
++  PyObject  *hdlist;
++  char  *filename;
++  int ret;
++
++  if (!PyArg_ParseTuple(args,"Os",&hdlist,&filename)) return NULL;
++  ret = WriteHeaders(hdlist,filename);
++  return(Py_BuildValue("i",ret));
++}
++
+ /**
+  */
+ PyObject * rhnLoad(PyObject * self, PyObject * args)
+--- python/rpmmodule.c.python_writeHD	2003-07-13 03:28:25.000000000 +0900
++++ python/rpmmodule.c	2004-07-28 21:30:18.235836872 +0900
+@@ -144,6 +144,8 @@
+ 	NULL },
+     { "readHeaderListFromFile", (PyCFunction) rpmHeaderFromFile, METH_VARARGS,
+ 	NULL },
++    { "writeHeaderListToFile", (PyCFunction) rpmHeaderToFile, METH_VARARGS,
++        NULL },
+ 
+     { "setLogFile", (PyCFunction) setLogFile, METH_VARARGS,
+ 	NULL },

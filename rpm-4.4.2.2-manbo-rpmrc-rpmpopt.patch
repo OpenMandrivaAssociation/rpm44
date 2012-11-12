@@ -1,0 +1,44 @@
+--- rpm-4.4.2.2/lib/poptALL.c.pix	2007-09-11 08:28:15.000000000 +0200
++++ rpm-4.4.2.2/lib/poptALL.c	2007-12-14 12:10:22.000000000 +0100
+@@ -427,6 +427,7 @@ rpmcliInit(int argc, char *const argv[],
+     optCon = poptGetContext(__progname, argc, (const char **)argv, optionsTable, 0);
+ /*@=nullpass =temptrans@*/
+     (void) poptReadConfigFile(optCon, LIBRPMALIAS_FILENAME);
++    (void) poptReadConfigFile(optCon, LIBVENDORALIAS_FILENAME);
+     (void) poptReadDefaultConfig(optCon, 1);
+     poptSetExecPath(optCon, RPMCONFIGDIR, 1);
+ 
+--- rpm-4.4.2.3-rc1/configure.ac.morepopt	2008-02-12 16:14:29.000000000 +0100
++++ rpm-4.4.2.3-rc1/configure.ac	2008-02-12 17:22:30.000000000 +0100
+@@ -1282,7 +1282,7 @@ AC_DEFINE_UNQUOTED(LIBRPMRC_FILENAME, "$
+ 	[Full path to rpmrc configuration file (usually /usr/lib/rpm44/rpmrc)])
+ AC_SUBST(LIBRPMRC_FILENAME)
+ 
+-VENDORRPMRC_FILENAME="${RPMCONFIGDIR}/${RPMCANONVENDOR}/rpmrc"
++VENDORRPMRC_FILENAME="${RPMCONFIGDIR}/manbo/rpmrc"
+ AC_DEFINE_UNQUOTED(VENDORRPMRC_FILENAME, "$VENDORRPMRC_FILENAME",
+        [Full path to vendor rpmrc configuration file (usually /usr/lib/rpm44/vendor/rpmrc)])
+ AC_SUBST(VENDORRPMRC_FILENAME)
+@@ -1291,6 +1291,12 @@ LIBRPMALIAS_FILENAME="${RPMCONFIGDIR}/rp
+ AC_DEFINE_UNQUOTED(LIBRPMALIAS_FILENAME, "$LIBRPMALIAS_FILENAME",
+ 	[Full path to rpmpopt configuration file (usually /usr/lib/rpm44/rpmpopt)])
+ AC_SUBST(LIBRPMALIAS_FILENAME)
++
++LIBVENDORALIAS_FILENAME="${RPMCONFIGDIR}/manbo/rpmpopt"
++AC_DEFINE_UNQUOTED(LIBVENDORALIAS_FILENAME, "$LIBVENDORALIAS_FILENAME",
++    [Full path to vendor rpmpopt configuration file (usually /usr/lib/rpm44/manbo/rpmpopt)])
++AC_SUBST(LIBVENDORALIAS_FILENAME)
++
+ FINDREQUIRES="${RPMCONFIGDIR}/find-requires"
+ AC_DEFINE_UNQUOTED(FINDREQUIRES, "$FINDREQUIRES",
+ 	[Full path to find-requires script (usually /usr/lib/rpm44/find-requires)])
+--- rpm-4.4.2.2/rpmqv.c.pix	2007-09-11 08:28:15.000000000 +0200
++++ rpm-4.4.2.2/rpmqv.c	2007-12-14 12:10:36.000000000 +0100
+@@ -293,6 +293,7 @@ int main(int argc, const char ** argv)
+     optCon = poptGetContext(__progname, argc, argv, optionsTable, 0);
+     /*@=nullpass =temptrans@*/
+     (void) poptReadConfigFile(optCon, LIBRPMALIAS_FILENAME);
++    (void) poptReadConfigFile(optCon, LIBVENDORALIAS_FILENAME);
+     (void) poptReadDefaultConfig(optCon, 1);
+     poptSetExecPath(optCon, RPMCONFIGDIR, 1);
+ 

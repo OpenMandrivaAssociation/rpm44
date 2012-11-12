@@ -1,0 +1,67 @@
+--- rpm-4.4.2.2/lib/rpmts.c.pix	2007-09-27 09:38:46.000000000 +0200
++++ rpm-4.4.2.2/lib/rpmts.c	2007-10-19 18:04:19.000000000 +0200
+@@ -231,7 +231,7 @@ static int isArch(const char * arch)
+ 	"sparc", "sun4", "sun4m", "sun4c", "sun4d", "sparcv8", "sparcv9", "sparcv9v",
+ 	"sparc64", "sparc64v", "sun4u",
+ 	"mips", "mipsel", "IP",
+-	"ppc", "ppciseries", "ppcpseries",
++	"ppc", "ppciseries", "ppcpseries", "ppc32",
+ 	"ppc64", "ppc64iseries", "ppc64pseries",
+ 	"m68k",
+ 	"rs6000",
+--- rpm-4.4.2.2/installplatform.pix	2007-09-11 08:46:16.000000000 +0200
++++ rpm-4.4.2.2/installplatform	2007-10-19 18:04:34.000000000 +0200
+@@ -34,7 +34,7 @@ case "$arch" in
+   alpha*) SUBSTS='s_alpha_alpha_ s_alpha_alphaev5_ s_alpha_alphaev56_ s_alpha_alphapca56_ s_alpha_alphaev6_ s_alpha_alphaev67_' ;;
+   arm*) SUBSTS='s_arm_armv3l_ s_arm_armv4l_ s_arm_armv4tl_ s_arm_armv5tel_ s_arm_armv5tejl_ s_arm_armv6l_' ;;
+   sparc*) SUBSTS='s_sparc\(64\|64v\|v9v\|v9\)_sparc_ s_sparc64_sparcv9_;s_sparc\([^v]\|$\)_sparcv9\1_ s_sparcv9_sparc64_;s_sparc\([^6]\|$\)_sparc64\1_' ;;
+-  powerpc*|ppc*) SUBSTS='s_ppc64_ppc_ s_ppc\([^6ip]\|$\)_ppc64\1_ s_ppc\([^6ip]\|$\)_ppciseries_ s_ppc\([^6ip]\|$\)_ppcpseries_ s_ppc\([^6ip]\|$\)_ppc64iseries_ s_ppc\([^6ip]\|$\)_ppc64pseries_' ;;
++  powerpc*|ppc*) SUBSTS='s_ppc64_ppc_ s_ppc\([^6ip]\|$\)_ppc64\1_ s_ppc\([^6ip]\|$\)_ppciseries_ s_ppc\([^6ip]\|$\)_ppcpseries_ s_ppc\([^6ip]\|$\)_ppc64iseries_ s_ppc\([^6ip]\|$\)_ppc64pseries_ s_ppc64_ppc32_ s_ppc\([^6ip]\|$\)_ppc32_' ;;
+   s390*) SUBSTS='s_s390x_s390_ s_s390\([^x]\|$\)_s390x\1_' ;;
+   x86_64|amd64|ia32e) SUBSTS='s,x86_64,x86_64, s,x86_64,ia32e, s,x86_64,amd64,' ;;
+   *) SUBSTS=y___ ;;
+@@ -68,7 +68,7 @@ for SUBST in $SUBSTS ; do
+     sparc64v-linux) ARCH_INSTALL_PORT=${pkglibdir}/brp-sparc64-linux; LIB=lib64; MULTILIBNO=2 ;;
+     s390-linux) MULTILIBNO=1 ;;
+     s390x-linux) LIB=lib64; MULTILIBNO=2 ;;
+-    ppc-linux) MULTILIBNO=1 ;;
++    ppc-linux|ppc32-linux) MULTILIBNO=1 ;;
+     ppc64-linux) LIB=lib64; MULTILIBNO=2 ;;
+     i?86-linux|pentium?-linux|athlon-linux) MULTILIBNO=1 ;;
+     x86_64-linux|amd64-linux|ia32e-linux) LIB=lib64; MULTILIBNO=2 ;;
+--- rpm-4.4.2.2/rpmrc.in.pix	2007-09-27 09:33:19.000000000 +0200
++++ rpm-4.4.2.2/rpmrc.in	2007-10-19 18:05:14.000000000 +0200
+@@ -49,6 +49,7 @@ optflags: ppc8560 -O2 -g -m32 -fsigned-c
+ optflags: ppc32dy4 -O2 -g -m32 -fsigned-char
+ optflags: ppciseries -O2 -g -m32 -fsigned-char
+ optflags: ppcpseries -O2 -g -m32 -fsigned-char
++optflags: ppc32 -O2 -g -fsigned-char
+ optflags: ppc64 -O2 -g -m64 -fsigned-char
+ 
+ optflags: parisc -O2 -g -mpa-risc-1-0
+@@ -116,6 +117,7 @@ arch_canon:	sparcv9v: sparcv9v	3
+ arch_canon:	mips:	mips	4
+ 
+ arch_canon:	ppc:	ppc	5
++arch_canon:	ppc32:	ppc32	5
+ arch_canon:	ppc8260:	ppc8260	5
+ arch_canon:	ppc8560:	ppc8560	5
+ arch_canon:	ppc32dy4:	ppc32dy4	5
+@@ -287,7 +289,8 @@ arch_compat: ppc8560: ppc
+ arch_compat: ppc32dy4: ppc
+ arch_compat: ppciseries: ppc
+ arch_compat: ppcpseries: ppc
+-arch_compat: ppc64: ppc
++arch_compat: ppc64: ppc32
++arch_compat: ppc32: ppc
+ arch_compat: ppc: rs6000
+ arch_compat: rs6000: noarch fat
+ arch_compat: ppc64pseries: ppc64
+@@ -404,6 +407,7 @@ buildarch_compat: ppc32dy4: noarch
+ buildarch_compat: ppciseries: noarch
+ buildarch_compat: ppcpseries: noarch
+ buildarch_compat: ppc: noarch fat
++buildarch_compat: ppc32: ppc
+ buildarch_compat: ppc64: noarch fat
+ buildarch_compat: ppc64pseries: ppc64
+ buildarch_compat: ppc64iseries: ppc64

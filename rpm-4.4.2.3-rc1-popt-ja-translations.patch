@@ -1,0 +1,129 @@
+diff -p -up rpm-4.4.2.3-rc1/popt/po/ja.po.pix rpm-4.4.2.3-rc1/popt/po/ja.po
+--- rpm-4.4.2.3-rc1/popt/po/ja.po.pix	2008-01-25 13:08:37.000000000 +0100
++++ rpm-4.4.2.3-rc1/popt/po/ja.po	2008-02-08 11:00:17.000000000 +0100
+@@ -17,92 +17,92 @@ msgstr ""
+ 
+ #: popt.c:35
+ msgid "unknown errno"
+-msgstr ""
++msgstr "未知のエラー"
+ 
+ #: popt.c:964
+ #, c-format
+ msgid "option type (%d) not implemented in popt\n"
+-msgstr ""
++msgstr "オプション (%d) は実装されていません\n"
+ 
+ #: popt.c:1184
+ msgid "missing argument"
+-msgstr ""
++msgstr "引数がありません"
+ 
+ #: popt.c:1186
+ msgid "unknown option"
+-msgstr ""
++msgstr "不明なオプション"
+ 
+ #: popt.c:1188
+ msgid "mutually exclusive logical operations requested"
+-msgstr ""
++msgstr "矛盾のある論理オプションが要求されました"
+ 
+ #: popt.c:1190
+ msgid "opt->arg should not be NULL"
+-msgstr ""
++msgstr "opt->arg は、NULLではいけません"
+ 
+ #: popt.c:1192
+ msgid "aliases nested too deeply"
+-msgstr ""
++msgstr "エイリアスが深過ぎます"
+ 
+ #: popt.c:1194
+ msgid "error in parameter quoting"
+-msgstr ""
++msgstr "パラメータの囲みにエラーがあります"
+ 
+ #: popt.c:1196
+ msgid "invalid numeric value"
+-msgstr ""
++msgstr "無効な数値です"
+ 
+ #: popt.c:1198
+ msgid "number too large or too small"
+-msgstr ""
++msgstr "数値が範囲を越えています"
+ 
+ #: popt.c:1200
+ msgid "memory allocation failed"
+-msgstr ""
++msgstr "メモリの確保に失敗しました"
+ 
+ #: popt.c:1204
+ msgid "unknown error"
+-msgstr ""
++msgstr "不明なエラー"
+ 
+ #: popthelp.c:64 popthelp.c:75
+ msgid "Show this help message"
+-msgstr ""
++msgstr "このヘルプを表示する"
+ 
+ #: popthelp.c:65 popthelp.c:76
+ msgid "Display brief usage message"
+-msgstr ""
++msgstr "簡単な使用方法を表示する"
+ 
+ #: popthelp.c:79
+ msgid "Display option defaults in message"
+-msgstr ""
++msgstr "メッセージのデフォルトオプションを表示する"
+ 
+ #: popthelp.c:124
+ msgid "NONE"
+-msgstr ""
++msgstr "なし"
+ 
+ #: popthelp.c:126
+ msgid "VAL"
+-msgstr ""
++msgstr "値"
+ 
+ #: popthelp.c:130
+ msgid "INT"
+-msgstr ""
++msgstr "整数"
+ 
+ #: popthelp.c:131
+ msgid "LONG"
+-msgstr ""
++msgstr "長整数"
+ 
+ #: popthelp.c:132
+ msgid "STRING"
+-msgstr ""
++msgstr "文字列"
+ 
+ #: popthelp.c:133
+ msgid "FLOAT"
+-msgstr ""
++msgstr "浮動小数"
+ 
+ #: popthelp.c:134
+ msgid "DOUBLE"
+-msgstr ""
++msgstr "倍浮動小数"
+ 
+ #: popthelp.c:135
+ msgid "ARG"
+@@ -110,8 +110,8 @@ msgstr ""
+ 
+ #: popthelp.c:548
+ msgid "Usage:"
+-msgstr ""
++msgstr "使用方法:"
+ 
+ #: popthelp.c:572
+ msgid "[OPTION...]"
+-msgstr ""
++msgstr "[オプション...]"

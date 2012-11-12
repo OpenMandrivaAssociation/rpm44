@@ -1,0 +1,11 @@
+--- build/parsePreamble.c.orig	2005-08-21 18:58:02.000000000 +0900
++++ build/parsePreamble.c	2005-08-21 18:58:31.000000000 +0900
+@@ -745,7 +745,7 @@
+     {RPMTAG_EPOCH,		0, 0, 0, "epoch"},
+     {RPMTAG_EPOCH,		0, 0, 0, "serial"},
+     {RPMTAG_SUMMARY,		0, 1, 0, "summary"},
+-    {RPMTAG_LICENSE,		0, 0, 1, "copyright"},
++    {RPMTAG_LICENSE,		0, 0, 0, "copyright"},
+     {RPMTAG_LICENSE,		0, 0, 0, "license"},
+     {RPMTAG_DISTRIBUTION,	0, 0, 0, "distribution"},
+     {RPMTAG_DISTURL,		0, 0, 0, "disturl"},

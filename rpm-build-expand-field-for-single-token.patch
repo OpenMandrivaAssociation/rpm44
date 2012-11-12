@@ -1,0 +1,28 @@
+--- ./build/parsePreamble.c.singletoken	2007-02-28 03:32:19.488239098 +0100
++++ ./build/parsePreamble.c	2007-02-28 03:32:45.968387184 +0100
+@@ -480,6 +480,7 @@ static int handlePreambleTag(Spec spec, 
+     int num;
+     int rc;
+     int xx;
++    char * expand_field = NULL;
+     
+     if (field == NULL) return RPMERR_BADSPEC;	/* XXX can't happen */
+     /* Find the start of the "field" and strip trailing space */
+@@ -498,13 +499,14 @@ static int handlePreambleTag(Spec spec, 
+ 		 spec->lineNum, spec->line);
+ 	return RPMERR_BADSPEC;
+     }
+-    end = findLastChar(field);
+-
++    expand_field = rpmExpand(field, NULL);
++    
+     /* See if this is multi-token */
+-    end = field;
++    end = expand_field;
+     SKIPNONSPACE(end);
+     if (*end != '\0')
+ 	multiToken = 1;
++    _free(expand_field);
+ 
+     switch (tag) {
+     case RPMTAG_NAME:

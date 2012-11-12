@@ -1,0 +1,12 @@
+--- rpm-4.4.6/lib/psm.c.pix	2006-04-03 01:12:33.000000000 +0200
++++ rpm-4.4.6/lib/psm.c	2007-01-19 16:31:49.000000000 +0100
+@@ -1050,6 +1050,9 @@
+ exit:
+     progArgv = hfd(progArgv, ptt);
+     script = hfd(script, stt);
++    if (rc != RPMRC_OK && psm->progTag != RPMTAG_PREINPROG) {
++        return RPMRC_OK;
++    }
+     return rc;
+ }
+ 

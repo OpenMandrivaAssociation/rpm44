@@ -1,0 +1,27 @@
+diff -p -up rpm-4.4.2.3-rc1/lib/transaction.c.pix rpm-4.4.2.3-rc1/lib/transaction.c
+--- rpm-4.4.2.3-rc1/lib/transaction.c.pix	2008-03-01 18:29:39.000000000 +0100
++++ rpm-4.4.2.3-rc1/lib/transaction.c	2008-03-01 20:34:57.000000000 +0100
+@@ -607,6 +607,7 @@ assert(otherFi != NULL);
+ 			}
+ 			fi->actions[i] = FA_CREATE;
+ 			rConflicts = 0;
++			done = 1;
+ 		    } else
+ 		    if (oFColor & prefcolor) {
+ 			/* ... first file of preferred colour is installed ... */
+@@ -614,14 +615,8 @@ assert(otherFi != NULL);
+ 			    otherFi->actions[otherFileNum] = FA_CREATE;
+ 			fi->actions[i] = FA_SKIPCOLOR;
+ 			rConflicts = 0;
+-		    } else
+-		    if (FColor == 0 && oFColor == 0) {
+-			/* ... otherwise, do both, last in wins. */
+-			otherFi->actions[otherFileNum] = FA_CREATE;
+-			fi->actions[i] = FA_CREATE;
+-			rConflicts = 0;
++			done = 1;
+ 		    }
+-		    done = 1;
+ 		}
+ 
+ 		/* HACK: always install latest (arch-independent) man

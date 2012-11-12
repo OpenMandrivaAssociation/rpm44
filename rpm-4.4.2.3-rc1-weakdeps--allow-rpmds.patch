@@ -1,0 +1,56 @@
+diff -p -up rpm-4.4.2.3-rc1/lib/rpmds.c.pix rpm-4.4.2.3-rc1/lib/rpmds.c
+--- rpm-4.4.2.3-rc1/lib/rpmds.c.pix	2008-03-17 15:41:57.000000000 +0100
++++ rpm-4.4.2.3-rc1/lib/rpmds.c	2008-03-17 15:43:34.000000000 +0100
+@@ -87,6 +87,14 @@ fprintf(stderr, "*** ds %p\t%s[%d]\n", d
+ 	tagEVR = RPMTAG_TRIGGERVERSION;
+ 	tagF = RPMTAG_TRIGGERFLAGS;
+     } else
++    if (ds->tagN == RPMTAG_ENHANCESNAME) {
++	tagEVR = RPMTAG_ENHANCESVERSION;
++	tagF = RPMTAG_ENHANCESFLAGS;
++    } else
++    if (ds->tagN == RPMTAG_SUGGESTSNAME) {
++	tagEVR = RPMTAG_SUGGESTSVERSION;
++	tagF = RPMTAG_SUGGESTSFLAGS;
++    } else
+ 	return NULL;
+ 
+     /*@-branchstate@*/
+@@ -325,6 +333,11 @@ rpmds rpmdsNew(Header h, rpmTag tagN, in
+ 	tagEVR = RPMTAG_ENHANCESVERSION;
+ 	tagF = RPMTAG_ENHANCESFLAGS;
+     } else
++    if (tagN == RPMTAG_SUGGESTSNAME) {
++	Type = "Suggests";
++	tagEVR = RPMTAG_SUGGESTSVERSION;
++	tagF = RPMTAG_SUGGESTSFLAGS;
++    } else
+ 	goto exit;
+ 
+     /*@-branchstate@*/
+@@ -449,6 +462,12 @@ rpmds rpmdsThis(Header h, rpmTag tagN, i
+     if (tagN == RPMTAG_TRIGGERNAME) {
+ 	Type = "Trigger";
+     } else
++    if (tagN == RPMTAG_ENHANCESNAME) {
++	Type = "Enhances";
++    } else
++    if (tagN == RPMTAG_SUGGESTSNAME) {
++	Type = "Suggests";
++    } else
+ 	goto exit;
+ 
+     xx = headerNVR(h, &n, &v, &r);
+@@ -523,6 +542,12 @@ rpmds rpmdsSingle(rpmTag tagN, const cha
+     if (tagN == RPMTAG_TRIGGERNAME) {
+ 	Type = "Trigger";
+     } else
++    if (tagN == RPMTAG_ENHANCESNAME) {
++	Type = "Enhances";
++    } else
++    if (tagN == RPMTAG_SUGGESTSNAME) {
++	Type = "Suggests";
++    } else
+ 	goto exit;
+ 
+     ds = xcalloc(1, sizeof(*ds));

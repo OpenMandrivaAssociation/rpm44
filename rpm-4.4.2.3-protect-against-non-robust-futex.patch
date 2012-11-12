@@ -1,0 +1,168 @@
+The basic idea is to workaround libdb using futex (through pthread_mutex)
+which are not "robust" (ie when a process dies, a futex may still be lying
+around, uselessly blocking, until a reboot is done).
+
+the workaround is to ensure __db* are removed when unused:
+- when we open the db, we share lock (through flock) __db.001
+- when the db is closed, __db* are removed if nobody locks __db.001 anymore
+- when the db is opened, __db* are removed if nobody locks __db.001:
+  this is useful to rip stale locks
+
+this fixes #41868, but it doesn't explain why stale locks are lying around :-/
+
+PS: another solution would be to patch libdb to use "robust futex", but the
+solution above is considered safer (since it won't impact the other programs
+of libdb)
+
+Signed-off-by: Pascal "Pixel" Rigaux <pixel@mandriva.com>
+
+diff -p -up rpm-4.4.2.3/rpmdb/db3.c.pix rpm-4.4.2.3/rpmdb/db3.c
+--- rpm-4.4.2.3/rpmdb/db3.c.pix	2008-04-01 09:28:22.000000000 +0200
++++ rpm-4.4.2.3/rpmdb/db3.c	2008-10-01 12:18:58.000000000 +0200
+@@ -11,6 +11,7 @@ static int _debug = 1;	/* XXX if < 0 deb
+ #if defined(HAVE_FTOK) && defined(HAVE_SYS_IPC_H)
+ #include <sys/ipc.h>
+ #endif
++#include <sys/file.h>
+ 
+ #include <rpmlib.h>
+ #include <rpmmacro.h>
+@@ -759,6 +760,101 @@ assert(db != NULL);
+ }
+ /*@=mustmod@*/
+ 
++
++static int fcntl_SETLK(int fd, int operation)
++{
++    struct flock l;
++    memset(&l, 0, sizeof(l));
++    l.l_type = operation;
++    return flock(fd, operation | LOCK_NB);
++}
++static void clean_db_regions(const char *dbhome)
++{
++    rpmMessage(RPMMESS_DEBUG, "cleaning db regions (ie db__* files) in %s\n", dbhome);
++  
++    char *filename = alloca(strlen(dbhome) + 40);
++    struct stat st;
++
++    int i;
++    for (i = 0; i < 16; i++) {
++        sprintf(filename, "%s/__db.%03d", dbhome, i);
++	(void)rpmCleanPath(filename);
++	if (Stat(filename, &st) != 0) continue;
++	unlink(filename);
++    }
++}
++static int open_extra_lock(const char *dbhome)
++{
++    int fd = -1;
++    char *f = NULL;
++    if (asprintf(&f, "%s/__db.001", dbhome) != -1) {
++        fd = open(f, O_RDWR);
++	free(f);
++    }
++    return fd;
++}
++static void _acquire_extra_lock(int lock_fd)
++{
++    if (fcntl_SETLK(lock_fd, LOCK_SH) == 0)
++	rpmMessage(RPMMESS_DEBUG, "acquire_extra_lock: locked %d\n", lock_fd);
++    else
++	rpmError(RPMERR_INTERNAL, "acquire_extra: failed to lock extra lock: %s\n", strerror(errno));
++}
++static void release_and_close_extra_lock(int lock_fd)
++{
++    if (fcntl_SETLK(lock_fd, LOCK_UN) != 0) {
++	rpmError(RPMERR_INTERNAL, "release_and_close_extra_lock: failed to unlock extra lock: %s\n", strerror(errno));
++    }
++    if (close(lock_fd) != 0) {
++	rpmError(RPMERR_INTERNAL, "release_and_close_extra_lock: failed to close extra lock fd: %s\n", strerror(errno));
++    }
++}
++static int may_clean_db_regions(const char * dbhome, int lock_fd)
++{
++    if (fcntl_SETLK(lock_fd, LOCK_EX) == 0) {
++	/* cool, we are the only one, we can safely clean berkeley db regions */
++	/* this is useful in case the previous db access crashed and did not close the db correctly */
++	clean_db_regions(dbhome);
++	return 1;
++    } else
++	return 0;
++}
++static int acquire_extra_lock_or_clean_db_regions(const char *dbhome)
++{
++    int fd = open_extra_lock(dbhome);
++
++    if (fd == -1) {
++	/* that's ok */
++    } else if (may_clean_db_regions(dbhome, fd)) {
++	rpmMessage(RPMMESS_NORMAL, "cleaning stale lock\n");
++	release_and_close_extra_lock(fd);
++	fd = -1;
++    } else {
++	/* we are not the only user of rpmdb */
++	_acquire_extra_lock(fd);
++    }
++    return fd;
++}
++static int acquire_extra_lock(const char *dbhome)
++{
++    int fd = open_extra_lock(dbhome);
++
++    if (fd == -1) {
++	rpmError(RPMERR_INTERNAL, "acquire_extra_lock: failed to open extra lock: %s\n", strerror(errno));
++    } else {
++	_acquire_extra_lock(fd);
++    }
++    return fd;
++}
++static void release_extra_lock_may_clean(const char *dbhome, int lock_fd)
++{
++    if (lock_fd != -1) {
++	rpmMessage(RPMMESS_DEBUG, "release_extra_lock_may_clean(%s, %d)\n", dbhome, lock_fd);
++	may_clean_db_regions(dbhome, lock_fd);
++	release_and_close_extra_lock(lock_fd);
++    }
++}
++
+ /*@-moduncon@*/ /* FIX: annotate db3 methods */
+ static int db3close(/*@only@*/ dbiIndex dbi, /*@unused@*/ unsigned int flags)
+ 	/*@globals rpmGlobalMacroContext, h_errno,
+@@ -823,6 +919,7 @@ static int db3close(/*@only@*/ dbiIndex 
+ 
+     if (rpmdb->db_dbenv != NULL && dbi->dbi_use_dbenv) {
+ 	if (rpmdb->db_opens == 1) {
++	    release_extra_lock_may_clean(dbhome, (int) ((DB_ENV *) rpmdb->db_dbenv)->app_private);
+ 	    /*@-nullstate@*/
+ 	    xx = db_fini(dbi, (dbhome ? dbhome : ""), dbfile, dbsubfile);
+ 	    /*@=nullstate@*/
+@@ -1019,6 +1116,7 @@ static int db3open(rpmdb rpmdb, rpmTag r
+     /*
+      * Avoid incompatible DB_CREATE/DB_RDONLY flags on DBENV->open.
+      */
++    int extra_lock = -1;
+     if (dbi->dbi_use_dbenv) {
+ 
+ #if 0
+@@ -1063,6 +1161,9 @@ static int db3open(rpmdb rpmdb, rpmTag r
+ 	    }
+ 
+ 	} else {	/* dbhome is writable, check for persistent dbenv. */
++	    if (rpmdb->db_dbenv == NULL)
++	        extra_lock = acquire_extra_lock_or_clean_db_regions(dbhome);
++
+ 	    /*@-mods@*/
+ 	    const char * dbf = rpmGetPath(dbhome, "/__db.001", NULL);
+ 	    /*@=mods@*/
+@@ -1125,6 +1226,10 @@ static int db3open(rpmdb rpmdb, rpmTag r
+ 	    if (rc == 0) {
+ 		rpmdb->db_dbenv = dbenv;
+ 		rpmdb->db_opens = 1;
++
++		if (extra_lock == -1 && getuid() == 0)
++		    extra_lock = acquire_extra_lock(dbhome);
++	        dbenv->app_private = (void*) extra_lock;
+ 	    }
+ 	} else {
+ 	    dbenv = rpmdb->db_dbenv;

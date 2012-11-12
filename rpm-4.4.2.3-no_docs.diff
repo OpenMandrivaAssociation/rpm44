@@ -1,0 +1,33 @@
+--- Makefile.am	2011-09-27 06:00:31.000000000 -0400
++++ Makefile.am.oden	2011-09-27 06:01:35.000000000 -0400
+@@ -10,7 +10,7 @@
+ 	po/*.in po/*.po po/rpm.pot \
+ 	rpm.magic rpmpopt-$(VERSION) rpmqv.c 
+ 
+-SUBDIRS = po misc @WITH_ZLIB_SUBDIR@ @WITH_ELFUTILS_SUBDIR@ @WITH_MAGIC_SUBDIR@ @WITH_DB_SUBDIR@ @WITH_SQLITE3_SUBDIR@ @WITH_POPT_SUBDIR@ @WITH_BEECRYPT_SUBDIR@ @WITH_NEON_SUBDIR@ lua rpmio rpmdb lib build @WITH_PYTHON_SUBDIR@ tools scripts doc .
++SUBDIRS = po misc @WITH_ZLIB_SUBDIR@ @WITH_ELFUTILS_SUBDIR@ @WITH_MAGIC_SUBDIR@ @WITH_DB_SUBDIR@ @WITH_SQLITE3_SUBDIR@ @WITH_POPT_SUBDIR@ @WITH_BEECRYPT_SUBDIR@ @WITH_NEON_SUBDIR@ lua rpmio rpmdb lib build @WITH_PYTHON_SUBDIR@ tools scripts .
+ 
+ INCLUDES = \
+ 	-I$(top_srcdir)/build \
+@@ -93,7 +93,7 @@
+ rpm2cpio_LDFLAGS =	$(myLDFLAGS)
+ rpm2cpio_LDADD =	$(myLDADD) @LIBMISC@
+ 
+-$(PROGRAMS): 		$(myLDADD) @WITH_APIDOCS_TARGET@
++$(PROGRAMS): 		$(myLDADD)
+ 
+ .PHONY:	splint
+ splint:
+@@ -230,12 +230,6 @@
+ 	find . -name "Makefile" -exec rm {} \; 
+ 	rm -f *gz *rpm config.*
+ 
+-.PHONY:	doxygen
+-doxygen @WITH_APIDOCS_TARGET@: Doxyfile rpmpopt-@VERSION@
+-	rm -rf $@
+-	mkdir -p $@
+-	- [ X"@__DOXYGEN@" != Xno ] && @__DOXYGEN@
+-
+ ctags:
+ 	find . -type f -name "*.[ch]*" | xargs @CTAGS@
+ 

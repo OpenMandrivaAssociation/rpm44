@@ -1,0 +1,21 @@
+(from Turbolinux)
+
+the length check is wrong:
+- dest_dir is /usr/src/debug by default
+- base_dir is $RPM_BUILD_DIR, which can be /RPM/BUILD
+
+diff -p -up rpm-4.4.2.3-rc1/tools/debugedit.c.pix rpm-4.4.2.3-rc1/tools/debugedit.c
+--- rpm-4.4.2.3-rc1/tools/debugedit.c.pix	2008-01-25 09:11:06.000000000 +0100
++++ rpm-4.4.2.3-rc1/tools/debugedit.c	2008-02-11 18:15:53.000000000 +0100
+@@ -1468,11 +1468,6 @@ main (int argc, char *argv[])
+ 	  fprintf (stderr, "You must specify a base dir if you specify a dest dir\n");
+ 	  exit (1);
+ 	}
+-      if (strlen (dest_dir) > strlen (base_dir))
+-	{
+-	  fprintf (stderr, "Only dest dir longer than base dir not supported\n");
+-	  exit (1);
+-	}
+     }
+ 
+   /* Make sure there are trailing slashes in dirs */

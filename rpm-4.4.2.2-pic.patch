@@ -1,0 +1,10 @@
+--- rpm-4.4.2.2/file/src/Makefile.am.pix	2007-09-11 08:28:15.000000000 +0200
++++ rpm-4.4.2.2/file/src/Makefile.am	2007-10-19 14:24:00.000000000 +0200
+@@ -23,6 +23,7 @@ libmagic_la_SOURCES = magic.c apprentice
+ 	compress.c is_tar.c readelf.c print.c fsmagic.c \
+ 	funcs.c apptype.c
+ libmagic_la_LDFLAGS = -version-info 1:0:0
++libmagic_la_CFLAGS  = -prefer-pic
+ 
+ noinst_PROGRAMS = file
+ file_SOURCES = file.c

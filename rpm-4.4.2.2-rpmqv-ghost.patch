@@ -1,0 +1,13 @@
+diff -up rpm-4.4.2.2/lib/poptQV.c.pix rpm-4.4.2.2/lib/poptQV.c
+--- rpm-4.4.2.2/lib/poptQV.c.pix	2007-10-23 12:22:01.000000000 +0200
++++ rpm-4.4.2.2/lib/poptQV.c	2007-10-23 12:23:09.000000000 +0200
+@@ -266,6 +266,9 @@ struct poptOption rpmQueryPoptTable[] = 
+ 	N_("list files in package"), NULL },
+ 
+  /* Duplicate file attr flags from packages into command line options. */
++ { "ghost", '\0', POPT_BIT_CLR|POPT_ARGFLAG_DOC_HIDDEN,
++	&rpmQVKArgs.qva_fflags, RPMFILE_GHOST,
++        N_("include %%ghost files"), NULL },
+  { "noghost", '\0', POPT_BIT_CLR|POPT_ARGFLAG_DOC_HIDDEN,
+ 	&rpmQVKArgs.qva_fflags, RPMFILE_GHOST,
+         N_("skip %%ghost files"), NULL },

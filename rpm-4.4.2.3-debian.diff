@@ -1,0 +1,527 @@
+diff -Naurp rpm-4.4.2.3/rpmio/Makefile.am rpm-4.4.2.3.debian/rpmio/Makefile.am
+--- rpm-4.4.2.3/rpmio/Makefile.am	2011-09-27 04:06:25.000000000 -0400
++++ rpm-4.4.2.3.debian/rpmio/Makefile.am	2011-09-27 04:06:43.000000000 -0400
+@@ -40,9 +40,8 @@ librpmio_la_LDFLAGS = -release 4.4 $(LDF
+ 	@WITH_LUA_LIB@ \
+ 	@WITH_MAGIC_LIB@ \
+ 	@WITH_ZLIB_LIB@ \
+-	@WITH_LZMA_LIB@ \
+ 	-lpthread
+-librpmio_la_LIBADD = # $(BEECRYPTLOBJS)
++librpmio_la_LIBADD = -llzma # $(BEECRYPTLOBJS)
+ librpmio_la_DEPENDENCIES = # .created
+ 
+ .created:
+diff -Naurp rpm-4.4.2.3/rpmio/rpmio.c rpm-4.4.2.3.debian/rpmio/rpmio.c
+--- rpm-4.4.2.3/rpmio/rpmio.c	2011-09-27 04:06:25.000000000 -0400
++++ rpm-4.4.2.3.debian/rpmio/rpmio.c	2011-09-27 04:06:43.000000000 -0400
+@@ -190,10 +190,8 @@ static /*@observer@*/ const char * fdbg(
+ 	} else if (fps->io == bzdio) {
+ 	    sprintf(be, "BZD %p fdno %d", fps->fp, fps->fdno);
+ #endif
+-#if defined(HAVE_LZMA_H)
+-	} else if (fps->io == lzdio) {
+-	    sprintf(be, "LZD %p fdno %d", fps->fp, fps->fdno);
+-#endif
++    } else if (fps->io == lzdio) {
++        sprintf(be, "LZD %p fdno %d", fps->fp, fps->fdno);
+ 	} else if (fps->io == fpio) {
+ 	    /*@+voidabstract@*/
+ 	    sprintf(be, "%s %p(%d) fdno %d",
+@@ -2787,7 +2785,6 @@ FDIO_t bzdio = /*@-compmempass@*/ &bzdio
+ /*@=moduncon@*/
+ #endif	/* HAVE_BZLIB_H */
+ 
+-#if defined(HAVE_LZMA_H)
+ #include <sys/types.h>
+ #include <inttypes.h>
+ #include <lzma.h>
+@@ -2795,12 +2792,12 @@ FDIO_t bzdio = /*@-compmempass@*/ &bzdio
+ #define kBufferSize (1 << 15)
+ 
+ typedef struct lzfile {
+-  /* IO buffer */
++    /* IO buffer */
+     uint8_t buf[kBufferSize];
+ 
+     lzma_stream strm;
+ 
+-    FILE *fp;
++    FILE *file;
+ 
+     int encoding;
+     int eof;
+@@ -2814,42 +2811,43 @@ static LZFILE *lzopen_internal(const cha
+     FILE *fp;
+     LZFILE *lzfile;
+     lzma_ret ret;
++    lzma_stream lzma_strm_tmp = LZMA_STREAM_INIT;
+ 
+     for (; *mode; mode++) {
+-	if (*mode == 'w')
+-	    encoding = 1;
+-	else if (*mode == 'r')
+-	    encoding = 0;
+-	else if (*mode >= '1' && *mode <= '9')
+-	    level = *mode - '0';
++        if (*mode == 'w')
++            encoding = 1;
++        else if (*mode == 'r')
++            encoding = 0;
++        else if (*mode >= '1' && *mode <= '9')
++            level = *mode - '0';
+     }
+     if (fd != -1)
+-	fp = fdopen(fd, encoding ? "w" : "r");
++        fp = fdopen(fd, encoding ? "w" : "r");
+     else
+-	fp = fopen(path, encoding ? "w" : "r");
++        fp = fopen(path, encoding ? "w" : "r");
+     if (!fp)
+-	return 0;
++        return NULL;
+     lzfile = calloc(1, sizeof(*lzfile));
+     if (!lzfile) {
+-	fclose(fp);
+-	return 0;
++        fclose(fp);
++        return NULL;
+     }
+-    lzfile->fp = fp;
++    lzfile->file = fp;
+     lzfile->encoding = encoding;
+     lzfile->eof = 0;
+-    lzfile->strm = LZMA_STREAM_INIT_VAR;
++    lzfile->strm = lzma_strm_tmp;
+     if (encoding) {
+-	lzma_options_alone alone;
+-	alone.uncompressed_size = LZMA_VLI_VALUE_UNKNOWN;
+-	memcpy(&alone.lzma, &lzma_preset_lzma[level - 1], sizeof(alone.lzma));
+-	ret = lzma_alone_encoder(&lzfile->strm, &alone);
++        lzma_options_lzma opt_lzma;
++        if (lzma_lzma_preset(&opt_lzma, level - 1))
++            return NULL;
++        ret = lzma_alone_encoder(&lzfile->strm, &opt_lzma);
+     } else {
+-	ret = lzma_auto_decoder(&lzfile->strm, 0, 0);
++        ret = lzma_auto_decoder(&lzfile->strm, UINT64_C(64) * 1024 * 1024, 0);
+     }
+     if (ret != LZMA_OK) {
+-	fclose(fp);
+-	free(lzfile);
+-	return 0;
++        fclose(fp);
++        free(lzfile);
++        return NULL;
+     }
+     return lzfile;
+ }
+@@ -2862,40 +2860,38 @@ static LZFILE *lzopen(const char *path, 
+ static LZFILE *lzdopen(int fd, const char *mode)
+ {
+     if (fd < 0)
+-	return 0;
++        return NULL;
+     return lzopen_internal(0, mode, fd);
+ }
+ 
+-#ifdef	UNUSED
+ static int lzflush(LZFILE *lzfile)
+ {
+-    return fflush(lzfile->fp);
++    return fflush(lzfile->file);
+ }
+-#endif
+ 
+ static int lzclose(LZFILE *lzfile)
+ {
+     lzma_ret ret;
+-    size_t n;
++    int n;
+ 
+     if (!lzfile)
+-	return -1;
++        return -1;
+     if (lzfile->encoding) {
+-	for (;;) {
+-	    lzfile->strm.avail_out = kBufferSize;
+-	    lzfile->strm.next_out = lzfile->buf;
+-	    ret = lzma_code(&lzfile->strm, LZMA_FINISH);
+-	    if (ret != LZMA_OK && ret != LZMA_STREAM_END)
+-		return -1;
+-	    n = kBufferSize - lzfile->strm.avail_out;
+-	    if (n && fwrite(lzfile->buf, 1, n, lzfile->fp) != n)
+-		return -1;
+-	    if (ret == LZMA_STREAM_END)
+-		break;
+-	}
++        for (;;) {
++            lzfile->strm.avail_out = kBufferSize;
++            lzfile->strm.next_out = lzfile->buf;
++            ret = lzma_code(&lzfile->strm, LZMA_FINISH);
++            if (ret != LZMA_OK && ret != LZMA_STREAM_END)
++                return -1;
++            n = kBufferSize - lzfile->strm.avail_out;
++            if (n && fwrite(lzfile->buf, 1, n, lzfile->file) != n)
++                return -1;
++            if (ret == LZMA_STREAM_END)
++                break;
++        }
+     }
+     lzma_end(&lzfile->strm);
+-    return fclose(lzfile->fp);
++    return fclose(lzfile->file);
+     free(lzfile);
+ }
+ 
+@@ -2905,61 +2901,60 @@ static ssize_t lzread(LZFILE *lzfile, vo
+     int eof = 0;
+ 
+     if (!lzfile || lzfile->encoding)
+-      return -1;
++        return -1;
+     if (lzfile->eof)
+-      return 0;
++        return 0;
+     lzfile->strm.next_out = buf;
+     lzfile->strm.avail_out = len;
+     for (;;) {
+-	if (!lzfile->strm.avail_in) {
+-	    lzfile->strm.next_in = lzfile->buf;
+-	    lzfile->strm.avail_in = fread(lzfile->buf, 1, kBufferSize, lzfile->fp);
+-	    if (!lzfile->strm.avail_in)
+-		eof = 1;
+-	}
+-	ret = lzma_code(&lzfile->strm, LZMA_RUN);
+-	if (ret == LZMA_STREAM_END) {
+-	    lzfile->eof = 1;
+-	    return len - lzfile->strm.avail_out;
+-	}
+-	if (ret != LZMA_OK)
+-	    return -1;
+-	if (!lzfile->strm.avail_out)
+-	    return len;
+-	if (eof)
+-	    return -1;
+-      }
++        if (!lzfile->strm.avail_in) {
++            lzfile->strm.next_in = lzfile->buf;
++            lzfile->strm.avail_in = fread(lzfile->buf, 1, kBufferSize, lzfile->file);
++            if (!lzfile->strm.avail_in)
++                eof = 1;
++        }
++        ret = lzma_code(&lzfile->strm, LZMA_RUN);
++        if (ret == LZMA_STREAM_END) {
++            lzfile->eof = 1;
++            return len - lzfile->strm.avail_out;
++        }
++        if (ret != LZMA_OK)
++            return -1;
++        if (!lzfile->strm.avail_out)
++            return len;
++        if (eof)
++            return -1;
++    }
+ }
+ 
+ static ssize_t lzwrite(LZFILE *lzfile, void *buf, size_t len)
+ {
+     lzma_ret ret;
+-    size_t n;
+-
++    int n;
+     if (!lzfile || !lzfile->encoding)
+-	return -1;
++        return -1;
+     if (!len)
+-	return 0;
++        return 0;
+     lzfile->strm.next_in = buf;
+     lzfile->strm.avail_in = len;
+     for (;;) {
+-	lzfile->strm.next_out = lzfile->buf;
+-	lzfile->strm.avail_out = kBufferSize;
+-	ret = lzma_code(&lzfile->strm, LZMA_RUN);
+-	if (ret != LZMA_OK)
+-	    return -1;
+-	n = kBufferSize - lzfile->strm.avail_out;
+-	if (n && fwrite(lzfile->buf, 1, n, lzfile->fp) != n)
+-	    return -1;
+-	if (!lzfile->strm.avail_in)
+-	    return len;
++        lzfile->strm.next_out = lzfile->buf;
++        lzfile->strm.avail_out = kBufferSize;
++        ret = lzma_code(&lzfile->strm, LZMA_RUN);
++        if (ret != LZMA_OK)
++            return -1;
++        n = kBufferSize - lzfile->strm.avail_out;
++        if (n && fwrite(lzfile->buf, 1, n, lzfile->file) != n)
++            return -1;
++        if (!lzfile->strm.avail_in)
++            return len;
+     }
+ }
+ 
+ /* =============================================================== */
+ 
+ static inline /*@dependent@*/ void * lzdFileno(FD_t fd)
+-	/*@*/
++/*@*/
+ {
+     void * rc = NULL;
+     int i;
+@@ -2967,44 +2962,44 @@ static inline /*@dependent@*/ void * lzd
+     FDSANE(fd);
+     for (i = fd->nfps; i >= 0; i--) {
+ /*@-boundsread@*/
+-	    FDSTACK_t * fps = &fd->fps[i];
++        FDSTACK_t * fps = &fd->fps[i];
+ /*@=boundsread@*/
+-	    if (fps->io != lzdio)
+-		continue;
+-	    rc = fps->fp;
+-	break;
++        if (fps->io != lzdio)
++            continue;
++        rc = fps->fp;
++        break;
+     }
+-    
++
+     return rc;
+ }
+ 
+ /*@-globuse@*/
+-static /*@null@*/ FD_t lzdOpen(const char * path, const char * fmode)
+-	/*@globals fileSystem @*/
+-	/*@modifies fileSystem @*/
++static /*@null@*/ FD_t lzdOpen(const char * path, const char * mode)
++/*@globals fileSystem @*/
++/*@modifies fileSystem @*/
+ {
+     FD_t fd;
+-    mode_t mode = (fmode && fmode[0] == 'w' ? O_WRONLY : O_RDONLY);
+-    LZFILE * lzfile = lzopen(path, fmode);
+-
+-    if (lzfile == NULL)
+-	return NULL;
++    LZFILE *lzfile;
++    if ((lzfile = lzopen(path, mode)) == NULL)
++        return NULL;
+     fd = fdNew("open (lzdOpen)");
+     fdPop(fd); fdPush(fd, lzdio, lzfile, -1);
+     return fdLink(fd, "lzdOpen");
+ }
+ /*@=globuse@*/
+ 
++
+ /*@-globuse@*/
+ static /*@null@*/ FD_t lzdFdopen(void * cookie, const char * fmode)
+-	/*@globals fileSystem, internalState @*/
+-	/*@modifies fileSystem, internalState @*/
++/*@globals fileSystem, internalState @*/
++/*@modifies fileSystem, internalState @*/
+ {
+     FD_t fd = c2f(cookie);
+-    int fdno = fdFileno(fd);
++    int fdno;
+     LZFILE *lzfile;
+ 
+-assert(fmode != NULL);
++    if (fmode == NULL) return NULL;
++    fdno = fdFileno(fd);
+     fdSetFdno(fd, -1);          /* XXX skip the fdio close */
+     if (fdno < 0) return NULL;
+     lzfile = lzdopen(fdno, fmode);
+@@ -3014,43 +3009,40 @@ assert(fmode != NULL);
+ }
+ /*@=globuse@*/
+ 
+-#ifdef	UNUSED
+ /*@-globuse@*/
+ static int lzdFlush(FD_t fd)
+-	/*@globals fileSystem @*/
+-	/*@modifies fileSystem @*/
++/*@globals fileSystem @*/
++/*@modifies fileSystem @*/
+ {
+     return lzflush(lzdFileno(fd));
+ }
+ /*@=globuse@*/
+-#endif
+ 
+ /* =============================================================== */
+ /*@-globuse@*/
+ /*@-mustmod@*/          /* LCL: *buf is modified */
+ static ssize_t lzdRead(void * cookie, /*@out@*/ char * buf, size_t count)
+-	/*@globals fileSystem, internalState @*/
+-	/*@modifies *buf, fileSystem, internalState @*/
++/*@globals fileSystem, internalState @*/
++/*@modifies *buf, fileSystem, internalState @*/
+ {
+     FD_t fd = c2f(cookie);
+     LZFILE *lzfile;
+-    ssize_t rc = -1;
++    ssize_t rc = 0;
+ 
+     if (fd->bytesRemain == 0) return 0; /* XXX simulate EOF */
+     lzfile = lzdFileno(fd);
+-assert(lzfile != NULL);
+     fdstat_enter(fd, FDSTAT_READ);
+-/*@-compdef@*/
+-    rc = lzread(lzfile, buf, count);
+-/*@=compdef@*/
+-DBGIO(fd, (stderr, "==>\tlzdRead(%p,%p,%u) rc %lx %s\n", cookie, buf, (unsigned)count, (unsigned long)rc, fdbg(fd)));
++    if (lzfile)
++        /*@-compdef@*/
++        rc = lzread(lzfile, buf, count);
++    /*@=compdef@*/
+     if (rc == -1) {
+-	fd->errcookie = "Lzma: decoding error";
++        fd->errcookie = "Lzma: decoding error";
+     } else if (rc >= 0) {
+-	fdstat_exit(fd, FDSTAT_READ, rc);
+-	/*@-compdef@*/
+-	if (fd->ndigests && rc > 0) fdUpdateDigests(fd, (void *)buf, rc);
+-	/*@=compdef@*/
++        fdstat_exit(fd, FDSTAT_READ, rc);
++        /*@-compdef@*/
++        if (fd->ndigests && rc > 0) fdUpdateDigests(fd, (void *)buf, rc);
++        /*@=compdef@*/
+     }
+     return rc;
+ }
+@@ -3059,8 +3051,8 @@ DBGIO(fd, (stderr, "==>\tlzdRead(%p,%p,%
+ 
+ /*@-globuse@*/
+ static ssize_t lzdWrite(void * cookie, const char * buf, size_t count)
+-	/*@globals fileSystem, internalState @*/
+-	/*@modifies fileSystem, internalState @*/
++/*@globals fileSystem, internalState @*/
++/*@modifies fileSystem, internalState @*/
+ {
+     FD_t fd = c2f(cookie);
+     LZFILE *lzfile;
+@@ -3074,18 +3066,17 @@ static ssize_t lzdWrite(void * cookie, c
+ 
+     fdstat_enter(fd, FDSTAT_WRITE);
+     rc = lzwrite(lzfile, (void *)buf, count);
+-DBGIO(fd, (stderr, "==>\tlzdWrite(%p,%p,%u) rc %lx %s\n", cookie, buf, (unsigned)count, (unsigned long)rc, fdbg(fd)));
+     if (rc < 0) {
+-	fd->errcookie = "Lzma: encoding error";
++        fd->errcookie = "Lzma: encoding error";
+     } else if (rc > 0) {
+-	fdstat_exit(fd, FDSTAT_WRITE, rc);
++        fdstat_exit(fd, FDSTAT_WRITE, rc);
+     }
+     return rc;
+ }
+ 
+ static inline int lzdSeek(void * cookie, /*@unused@*/ _libio_pos_t pos,
+-			/*@unused@*/ int whence)
+-	/*@*/
++                          /*@unused@*/ int whence)
++/*@*/
+ {
+     FD_t fd = c2f(cookie);
+ 
+@@ -3094,8 +3085,8 @@ static inline int lzdSeek(void * cookie,
+ }
+ 
+ static int lzdClose( /*@only@*/ void * cookie)
+-	/*@globals fileSystem, internalState @*/
+-	/*@modifies fileSystem, internalState @*/
++/*@globals fileSystem, internalState @*/
++/*@modifies fileSystem, internalState @*/
+ {
+     FD_t fd = c2f(cookie);
+     LZFILE *lzfile;
+@@ -3112,33 +3103,31 @@ static int lzdClose( /*@only@*/ void * c
+     /* XXX TODO: preserve fd if errors */
+ 
+     if (fd) {
+-	if (rc == -1) {
+-	    fd->errcookie = strerror(ferror(lzfile->fp));
+-	} else if (rc >= 0) {
+-	    fdstat_exit(fd, FDSTAT_CLOSE, rc);
+-	}
++        if (rc == -1) {
++            fd->errcookie = strerror(ferror(lzfile->file));
++        } else if (rc >= 0) {
++            fdstat_exit(fd, FDSTAT_CLOSE, rc);
++        }
+     }
+ 
+-DBGIO(fd, (stderr, "==>\tlzdClose(%p) rc %lx %s\n", cookie, (unsigned long)rc, fdbg(fd)));
++    DBGIO(fd, (stderr, "==>\tlzdClose(%p) rc %lx %s\n", cookie, (unsigned long)rc, fdbg(fd)));
+ 
+     if (_rpmio_debug || rpmIsDebug()) fdstat_print(fd, "LZDIO", stderr);
+     /*@-branchstate@*/
+     if (rc == 0)
+-	fd = fdFree(fd, "open (lzdClose)");
++        fd = fdFree(fd, "open (lzdClose)");
+     /*@=branchstate@*/
+     return rc;
+ }
+ 
+ /*@-type@*/ /* LCL: function typedefs */
+ static struct FDIO_s lzdio_s = {
+-  lzdRead, lzdWrite, lzdSeek, lzdClose, lzdOpen, lzdFdopen,
++    lzdRead, lzdWrite, lzdSeek, lzdClose, XfdLink, XfdFree, XfdNew, fdFileno,
++    NULL, lzdOpen, lzdFileno, lzdFlush,	NULL, NULL, NULL, NULL, NULL
+ };
+ /*@=type@*/
+-
+ FDIO_t lzdio = /*@-compmempass@*/ &lzdio_s /*@=compmempass@*/ ;
+ 
+-#endif
+-
+ /* =============================================================== */
+ /*@observer@*/
+ static const char * getFdErrstr (FD_t fd)
+@@ -3154,13 +3143,11 @@ static const char * getFdErrstr (FD_t fd
+ 
+ #ifdef	HAVE_BZLIB_H
+     if (fdGetIo(fd) == bzdio) {
+-	errstr = fd->errcookie;
++        errstr = fd->errcookie;
+     } else
+ #endif	/* HAVE_BZLIB_H */
+-#ifdef  HAVE_LZMA_H
+     if (fdGetIo(fd) == lzdio) {
+     errstr = fd->errcookie;
+-#endif /* HAVE_LZMA_H */
+     } else 
+     {
+ 	errstr = (fd->syserrno ? strerror(fd->syserrno) : "");
+@@ -3475,13 +3462,9 @@ fprintf(stderr, "*** Fdopen(%p,%s) %s\n"
+ 	    fd = bzdFdopen(fd, zstdio);
+ 	    /*@=internalglobs@*/
+ #endif
+-#if defined(HAVE_LZMA_H)
+-	} else if (!strcmp(end, "lzdio")) {
+-	    iof = lzdio;
+-	    /*@-internalglobs@*/
+-	    fd = lzdFdopen(fd, zstdio);
+-	    /*@-internalglobs@*/
+-#endif
++    } else if (!strcmp(end, "lzdio")) {
++        iof = lzdio;
++        fd = lzdFdopen(fd, zstdio);
+ 	} else if (!strcmp(end, "ufdio")) {
+ 	    iof = ufdio;
+ 	} else if (!strcmp(end, "fpio")) {
+@@ -3669,11 +3652,9 @@ int Ferror(FD_t fd)
+ 	    ec = (fd->syserrno  || fd->errcookie != NULL) ? -1 : 0;
+ 	    i--;	/* XXX fdio under bzdio always has fdno == -1 */
+ #endif
+-#if defined(HAVE_LZMA_H)
+     } else if (fps->io == lzdio) {
+-	    ec = (fd->syserrno  || fd->errcookie != NULL) ? -1 : 0;
+-	    i--;	/* XXX fdio under lzdio always has fdno == -1 */
+-#endif
++        ec = (fd->syserrno  || fd->errcookie != NULL) ? -1 : 0;
++        i--;	/* XXX fdio under lzdio always has fdno == -1 */
+ 	} else {
+ 	/* XXX need to check ufdio/gzdio/bzdio/fdio errors correctly. */
+ 	    ec = (fdFileno(fd) < 0 ? -1 : 0);

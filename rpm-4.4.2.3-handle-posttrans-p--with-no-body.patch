@@ -1,0 +1,12 @@
+diff -p -up rpm-4.4.2.3/lib/transaction.c.pix rpm-4.4.2.3/lib/transaction.c
+--- rpm-4.4.2.3/lib/transaction.c.pix	2008-05-27 11:12:45.000000000 +0200
++++ rpm-4.4.2.3/lib/transaction.c	2008-05-27 13:49:27.000000000 +0200
+@@ -2356,7 +2356,7 @@ assert(psm != NULL);
+ 	    if ((fi = rpmtsiFi(pi)) == NULL)
+ 		continue;	/* XXX can't happen */
+ 
+-	    haspostscript = (fi->posttrans != NULL ? 1 : 0);
++	    haspostscript = (fi->posttrans || fi->posttransprog ? 1 : 0);
+ 	    p->fi = rpmfiFree(p->fi);
+ 
+ 	    /* If no post-transaction script, then don't bother. */

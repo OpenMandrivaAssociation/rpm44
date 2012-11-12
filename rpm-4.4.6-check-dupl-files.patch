@@ -1,0 +1,11 @@
+--- scripts/check-files	2006/06/20 13:04:31	1.1
++++ scripts/check-files	2006/06/20 13:04:36
+@@ -18,7 +18,7 @@
+ FILES_RPM=`mktemp $TMPDIR/rpmXXXXXX`
+ 
+ find $RPM_BUILD_ROOT -type f -o -type l | LC_ALL=C sort > $FILES_DISK
+-LC_ALL=C sort > $FILES_RPM
++LC_ALL=C sort -u > $FILES_RPM
+ 
+ diff "$FILES_DISK" "$FILES_RPM" | grep "^< " | cut -c3- | sed -e "s#^$RPM_BUILD_ROOT#   #g"
+ 

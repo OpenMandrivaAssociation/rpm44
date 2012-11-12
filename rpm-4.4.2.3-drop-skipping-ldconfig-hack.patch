@@ -1,0 +1,74 @@
+diff -p -up rpm-4.4.2.3/lib/psm.c.pix rpm-4.4.2.3/lib/psm.c
+--- rpm-4.4.2.3/lib/psm.c.pix	2008-06-02 13:47:42.000000000 +0200
++++ rpm-4.4.2.3/lib/psm.c	2008-06-02 13:48:57.000000000 +0200
+@@ -580,14 +580,6 @@ static rpmRC runLuaScript(rpmpsm psm, He
+ #endif
+ 
+ /**
+- */
+-/*@unchecked@*/
+-static int ldconfig_done = 0;
+-
+-/*@unchecked@*/ /*@observer@*/ /*@null@*/
+-static const char * ldconfig_path = "/sbin/ldconfig";
+-
+-/**
+  * Run scriptlet with args.
+  *
+  * Run a script with an interpreter. If the interpreter is not specified,
+@@ -608,9 +600,9 @@ static const char * ldconfig_path = "/sb
+ static rpmRC runScript(rpmpsm psm, Header h, const char * sln,
+ 		int progArgc, const char ** progArgv,
+ 		const char * script, int arg1, int arg2)
+-	/*@globals ldconfig_done, rpmGlobalMacroContext, h_errno,
++	/*@globals rpmGlobalMacroContext, h_errno,
+ 		fileSystem, internalState@*/
+-	/*@modifies psm, ldconfig_done, rpmGlobalMacroContext,
++	/*@modifies psm, rpmGlobalMacroContext,
+ 		fileSystem, internalState @*/
+ {
+     const rpmts ts = psm->ts;
+@@ -656,19 +648,6 @@ static rpmRC runScript(rpmpsm psm, Heade
+ 
+     psm->sq.reaper = 1;
+ 
+-    /*
+-     * If a successor node, and ldconfig was just run, don't bother.
+-     */
+-    if (ldconfig_path && progArgv != NULL && psm->unorderedSuccessor) {
+- 	if (ldconfig_done && !strcmp(progArgv[0], ldconfig_path)) {
+-	    rpmMessage(RPMMESS_DEBUG,
+-		_("%s: %s(%s-%s-%s.%s) skipping redundant \"%s\".\n"),
+-		psm->stepName, tag2sln(psm->scriptTag), n, v, r, a,
+-		progArgv[0]);
+-	    return rc;
+-	}
+-    }
+-
+     rpmMessage(RPMMESS_DEBUG,
+ 		_("%s: %s(%s-%s-%s.%s) %ssynchronous scriptlet start\n"),
+ 		psm->stepName, tag2sln(psm->scriptTag), n, v, r, a,
+@@ -678,13 +657,10 @@ static rpmRC runScript(rpmpsm psm, Heade
+ 	argv = alloca(5 * sizeof(*argv));
+ 	argv[0] = "/bin/sh";
+ 	argc = 1;
+-	ldconfig_done = 0;
+     } else {
+ 	argv = alloca((progArgc + 4) * sizeof(*argv));
+ 	memcpy(argv, progArgv, progArgc * sizeof(*argv));
+ 	argc = progArgc;
+-	ldconfig_done = (ldconfig_path && !strcmp(argv[0], ldconfig_path)
+-		? 1 : 0);
+     }
+ 
+ #if __ia64__
+@@ -755,9 +731,6 @@ static rpmRC runScript(rpmpsm psm, Heade
+ 	    xx = Fwrite(set_x, sizeof(set_x[0]), sizeof(set_x)-1, fd);
+ 	}
+ 
+-	if (ldconfig_path && strstr(script, ldconfig_path) != NULL)
+-	    ldconfig_done = 1;
+-
+ 	xx = Fwrite(script, sizeof(script[0]), strlen(script), fd);
+ 	xx = Fclose(fd);
+ 

@@ -1,0 +1,24 @@
+commit 90ca5e5989ec289a51d2e1c7c8caa59063a6fb70
+Author: Panu Matilainen <pmatilai@redhat.com>
+Date:   Thu Apr 24 13:23:22 2008 +0300
+
+    Check for chroot() result in rpmtsRun()
+    - bail out early if it fails instead of blindly continuing and potentially
+      messing in real root (chroot can fail for priviledged user too)
+
+diff --git a/lib/transaction.c b/lib/transaction.c
+index 702e2f4..2127006 100644
+--- a/lib/transaction.c
++++ b/lib/transaction.c
+@@ -1195,7 +1195,10 @@ int rpmtsRun(rpmts ts, rpmps okProbs, rpmprobFilterFlags ignoreSet)
+ 	if (rootDir != NULL && strcmp(rootDir, "/") && *rootDir == '/') {
+ 	    /* opening db before chroot not optimal, see rhbz#103852 c#3 */
+ 	    xx = rpmdbOpenAll(ts->rdb);
+-	    xx = chroot(rootDir);
++	    if (chroot(rootDir) == -1) {
++		rpmlog(RPMLOG_ERR, _("Unable to change root directory: %m\n"));
++		return -1;
++	    }
+ 	}
+ 	(void) rpmtsSetChrootDone(ts, 1);
+     }

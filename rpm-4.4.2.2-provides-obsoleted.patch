@@ -1,0 +1,11 @@
+--- rpm-4.4.2.2/lib/depends.c.pix	2007-10-19 17:54:33.000000000 +0200
++++ rpm-4.4.2.2/lib/depends.c	2007-10-19 18:02:12.000000000 +0200
+@@ -366,7 +366,7 @@ addheader:
+ 	     * If no obsoletes version info is available, match all names.
+ 	     */
+ 	    if (rpmdsEVR(obsoletes) == NULL
+-	     || rpmdsAnyMatchesDep(oh, obsoletes, _rpmds_nopromote)) {
++	     || rpmdsNVRMatchesDep(oh, obsoletes, _rpmds_nopromote)) {
+ 		const char * ohNEVRA = hGetNEVRA(oh, NULL);
+ #ifdef	DYING	/* XXX see http://bugzilla.redhat.com #134497 */
+ 		if (rpmVersionCompare(h, oh))

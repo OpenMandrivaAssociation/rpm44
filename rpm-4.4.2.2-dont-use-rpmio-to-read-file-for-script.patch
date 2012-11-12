@@ -1,0 +1,33 @@
+diff -up rpm-4.4.2.2/build/pack.c.pix rpm-4.4.2.2/build/pack.c
+--- rpm-4.4.2.2/build/pack.c.pix	2007-10-23 14:58:33.000000000 +0200
++++ rpm-4.4.2.2/build/pack.c	2007-10-23 14:57:44.000000000 +0200
+@@ -136,18 +136,15 @@ static /*@only@*/ /*@null@*/ StringBuf a
+     char buf[BUFSIZ];
+     const char * fn = buf;
+     FILE * f;
+-    FD_t fd;
+ 
+     fn = rpmGetPath("%{_builddir}/%{?buildsubdir:%{buildsubdir}/}", file, NULL);
+ 
+-    fd = Fopen(fn, "r.ufdio");
++    f = fopen(fn, "r");
+     if (fn != buf) fn = _free(fn);
+-    if (fd == NULL || Ferror(fd)) {
++    if (f == NULL) {
+ 	sb = freeStringBuf(sb);
+ 	return NULL;
+     }
+-    /*@-type@*/ /* FIX: cast? */
+-    if ((f = fdGetFp(fd)) != NULL)
+     /*@=type@*/
+     while (fgets(buf, sizeof(buf), f)) {
+ 	/* XXX display fn in error msg */
+@@ -158,7 +155,7 @@ static /*@only@*/ /*@null@*/ StringBuf a
+ 	}
+ 	appendStringBuf(sb, buf);
+     }
+-    (void) Fclose(fd);
++    (void) fclose(f);
+ 
+     return sb;
+ }

@@ -1,0 +1,22 @@
+--- rpm-4.4.2.2/macros.in.pix	2007-12-14 09:52:45.000000000 +0100
++++ rpm-4.4.2.2/macros.in	2007-12-14 09:56:06.000000000 +0100
+@@ -218,7 +218,7 @@ package or when debugging this package.\
+ %_tmppath		%{_var}/tmp
+ 
+ #	Path to top of build area.
+-%_topdir		%{_usrsrc}/redhat
++%_topdir		%{_usrsrc}/rpm
+ 
+ #	The path to the unzip executable (legacy, use %{__unzip} instead).
+ %_unzipbin		%{__unzip}
+--- rpm-4.4.2.2/Makefile.am.pix	2007-09-11 08:46:59.000000000 +0200
++++ rpm-4.4.2.2/Makefile.am	2007-12-14 10:01:12.000000000 +0100
+@@ -118,7 +118,7 @@ lint:
+ 
+ CVSTAG = r$(subst .,-,$(VERSION))
+ 
+-pkgsrcdir = $(prefix)/src/$(RPMCANONVENDOR)
++pkgsrcdir = $(prefix)/src/rpm
+ 
+ install-data-local:
+ 	@$(mkinstalldirs) $(DESTDIR)$(varprefix)/lib/rpm

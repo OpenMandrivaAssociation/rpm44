@@ -1,0 +1,65 @@
+--- rpm-4.4.2.2/lib/psm.c.pix	2007-10-19 14:56:56.000000000 +0200
++++ rpm-4.4.2.2/lib/psm.c	2007-10-19 15:02:16.000000000 +0200
+@@ -2127,6 +2127,17 @@ assert(psm->mi == NULL);
+ 	    }
+ 	}
+ 	(void) rpmswExit(rpmtsOp(ts, RPMTS_OP_DBADD), 0);
++#if HAVE_SYSLOG_H
++        {
++	  char *s;
++
++	  s = headerSprintf(fi->h, "%{NAME}-%{VERSION}-%{RELEASE}",
++			    rpmTagTable, rpmHeaderFormats, NULL);
++	  syslog(LOG_NOTICE, "[RPM] %s installed\n", s);
++	  s = _free(s);
++	 }
++#endif
++
+ 	break;
+     case PSM_RPMDB_REMOVE:
+ 	if (rpmtsFlags(ts) & RPMTRANS_FLAG_TEST)	break;
+@@ -2161,6 +2172,16 @@ assert(psm->mi == NULL);
+ 	}
+ 
+ 	(void) rpmswExit(rpmtsOp(ts, RPMTS_OP_DBREMOVE), 0);
++#if HAVE_SYSLOG_H
++        {
++	  char *s;
++
++	  s = headerSprintf(fi->h, "%{NAME}-%{VERSION}-%{RELEASE}",
++			    rpmTagTable, rpmHeaderFormats, NULL);
++	  syslog(LOG_NOTICE, "[RPM] %s removed\n", s);
++	  s = _free(s);
++	}
++#endif
+ 	break;
+ 
+     default:
+--- rpm-4.4.2.2/system.h.pix	2007-09-11 08:28:15.000000000 +0200
++++ rpm-4.4.2.2/system.h	2007-10-19 14:56:56.000000000 +0200
+@@ -9,6 +9,10 @@
+ #include "config.h"
+ #endif
+ 
++#if HAVE_SYSLOG_H
++#include <syslog.h>
++#endif
++
+ #include <sys/types.h>
+ 
+ #if defined(__LCLINT__)
+--- rpm-4.4.2.2/configure.ac.pix	2007-10-03 10:51:27.000000000 +0200
++++ rpm-4.4.2.2/configure.ac	2007-10-19 14:56:56.000000000 +0200
+@@ -372,6 +372,12 @@ else
+ fi
+ 
+ dnl
++dnl Checking syslog
++dnl
++
++AC_CHECK_HEADERS(syslog.h)
++
++dnl
+ dnl Check for features
+ dnl
+ 

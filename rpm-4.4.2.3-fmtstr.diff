@@ -1,0 +1,11 @@
+--- tools/javadeps.c	2008-04-01 09:28:22.000000000 +0200
++++ tools/javadeps.c.oden	2011-09-27 13:02:50.000000000 +0200
+@@ -339,7 +339,7 @@ void die(char *format, ...) {
+ 	 stdout, stderr, or syslog
+   */
+ 
+-  fprintf(stderr, newmsg);
++  fprintf(stderr, "%s", newmsg);
+   
+   free(newformat);
+   free(newmsg);

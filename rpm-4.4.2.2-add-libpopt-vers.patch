@@ -1,0 +1,54 @@
+diff -p -up rpm-4.4.2.2/popt/Makefile.am.pix rpm-4.4.2.2/popt/Makefile.am
+--- rpm-4.4.2.2/popt/Makefile.am.pix    2007-12-17 13:56:04.000000000 +0100
++++ rpm-4.4.2.2/popt/Makefile.am        2007-12-17 13:55:58.000000000 +0100
+@@ -40,6 +40,8 @@ usrlib_LTLIBRARIES = libpopt.la
+ libpopt_la_SOURCES = popt.c findme.c poptparse.c poptconfig.c popthelp.c
+ libpopt_la_LDFLAGS = @INTLLIBS@
+ 
++libpopt_la_LDFLAGS += -Wl,--version-script=$(srcdir)/libpopt.vers
++
+ man_MANS = popt.3
+ 
+ #BUILT_SOURCES = popt.lcd
+diff -p -up rpm-4.4.2.2/popt/libpopt.vers.pix rpm-4.4.2.2/popt/libpopt.vers
+--- /dev/null	2007-12-17 13:49:14.000000000 +0100
++++ rpm-4.4.2.2/popt/libpopt.vers	2007-12-17 13:48:41.000000000 +0100
+@@ -0,0 +1,38 @@
++LIBPOPT_0
++{
++  global:
++    findProgramPath;
++    _fini;
++    _init;
++    poptAddAlias;
++    poptAddItem;
++    poptAliasOptions;
++    poptBadOption;
++    poptConfigFileToString;
++    poptDupArgv;
++    poptFreeContext;
++    poptGetArg;
++    poptGetArgs;
++    poptGetContext;
++    poptGetInvocationName;
++    poptGetNextOpt;
++    poptGetOptArg;
++    poptHelpOptions;
++    poptHelpOptionsI18N;
++    poptParseArgvString;
++    poptPeekArg;
++    poptPrintHelp;
++    poptPrintUsage;
++    poptReadConfigFile;
++    poptReadDefaultConfig;
++    poptResetContext;
++    poptSaveInt;
++    poptSaveLong;
++    poptSetExecPath;
++    poptSetOtherOptionHelp;
++    poptStrerror;
++    poptStrippedArgv;
++    poptStuffArgs;
++  local:
++    *;
++};
