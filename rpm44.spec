@@ -57,7 +57,7 @@ Version:	%{rpmversion}
 %define subrel 3
 Release:	%mkrel 0
 Group:		System/Configuration/Packaging
-URL:            http://rpm.org/
+URL:            https://rpm.org/
 Source:		http://www.rpm.org/releases/rpm-%{libver}.x/rpm-%{srcver}.tar.gz
 
 # Add some undocumented feature to gendiff
